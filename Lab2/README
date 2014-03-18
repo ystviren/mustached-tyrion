@@ -1,0 +1,38 @@
+Andre Pinto 997509325
+Alan Cheung 997632593
+
+How to run:
+- server.sh will start the server. Usage (both arguments required):
+	server.sh <portnumber> <maze seed>
+- run.sh will start the client. Requires the following inputs to the Java GUI:
+	1. name (must be unique from other players)
+	2. server location (hostname)
+	3. port number
+
+Game Features:
+- will theoretically support any number of players that try to join the game
+- supports players dynamically joining and leaving the game.
+- server will set the maze seed based on startup argument and broadcast this to clients.
+
+
+Notable implementation details:
+	Client
+	- the network communication on the client is handled through a single thread that is spawned in the instance of Mazewar
+	- Packets are sent to the sever using events through GUIClient and the MazeListeners interface, as well as 
+	  through the listening thread.
+	- kills are registered by the client that was killed.
+	- firing a bullet is confirmed by the server before launching.
+
+	Server
+	- the server implements a command buffer in the form of a list of packets.
+	- server spawns a single broadcast thread for processing commands in the buffer.
+ 	- server spawns a thread for each client to receive commands.
+	- server side score consistency.
+	- server maintains a record of the last known position and orientation of all clients
+
+Some Known Issues
+- using the same name as another player will cause undefined behaviour
+- adding more players than can fit on a map will cause undefined behaviour
+- IndexOutOfBounds on server in cases where network is saturated with commands and a player tries to join
+- bullets are not fully synchronized across clients
+
