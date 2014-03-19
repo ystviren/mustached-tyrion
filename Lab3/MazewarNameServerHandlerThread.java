@@ -7,11 +7,13 @@ public class MazewarNameServerHandlerThread extends Thread {
 	private Socket socket = null;
 	
 	List<ClientInfo> connectedClients;
+	private int pID;
 
 	public MazewarNameServerHandlerThread(Socket socket) {
 		super("BrokerServerHandlerThread");
 		connectedClients = new ArrayList<ClientInfo>();
 		this.socket = socket;
+		pID = 0;
 		System.out.println("Created new Thread to handle client");
 	}
 
@@ -40,7 +42,6 @@ public class MazewarNameServerHandlerThread extends Thread {
 				if (packetFromClient.type == MazewarPacket.PACKET_NULL || packetFromClient.type == MazewarPacket.CLIENT_BYE) {
 					gotByePacket = true;
 					packetToClient.type = MazewarPacket.NAME_SERVER_BYE;
-					//packetToClient.message = "Bye!";
 					toClient.writeObject(packetToClient);
 					break;
 				}	
@@ -48,6 +49,10 @@ public class MazewarNameServerHandlerThread extends Thread {
 				if (packetFromClient.type == MazewarPacket.CLIENT_LOOKUP_REGISTER) {
 					packetToClient.remoteList = new ArrayList<ClientInfo>(connectedClients);
 					connectedClients.add(packetFromClient.myInfo);
+					packetToClient.myInfo = new ClientInfo(packetFromClient.myInfo.clientName, packetFromClient.myInfo.clientHostname, packetFromClient.myInfo.clientPort, pID);
+					pID++;
+					toClient.writeObject(packetToClient);
+					break;
 				}
 			}
 
