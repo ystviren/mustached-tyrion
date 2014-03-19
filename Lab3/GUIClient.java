@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * An implementation of {@link LocalClient} that is controlled by the keyboard
@@ -34,17 +36,28 @@ import java.net.Socket;
  */
 
 public class GUIClient extends LocalClient implements KeyListener {
-	ObjectOutputStream out = null;
+	List<ObjectOutputStream> out = null;
+	int pID;
 	/**
 	 * Create a GUI controlled {@link LocalClient}.
 	 */
-	public GUIClient(String name, ObjectOutputStream out) {
+	public GUIClient(String name, int pID, ObjectOutputStream out) {
 		super(name);
-		this.out = out;
+		this.out = new ArrayList<ObjectOutputStream>();
+		this.out.add(out);
+		this.pID = pID;
 	}
 
 	public GUIClient(String name) {
 		super(name);
+	}
+	
+	public void addClient(ObjectOutputStream out){
+		this.out.add(out);
+	}
+	
+	public int getLamport(){
+		return 0;
 	}
 
 	/**
@@ -56,72 +69,79 @@ public class GUIClient extends LocalClient implements KeyListener {
 	public void keyPressed(KeyEvent e) {
 		/* make a new request packet */
 
-		MazewarPacket packetToServer = null;
+		MazewarPacket packetToMulticast = null;
 
 
 		// If the user pressed Q, invoke the cleanup code and quit.
 		if ((e.getKeyChar() == 'q') || (e.getKeyChar() == 'Q')) {
 			// Mazewar.quit();
-			packetToServer = new MazewarPacket();
-			packetToServer.type = MazewarPacket.CLIENT_BYE;
-			packetToServer.clientName = getName();
-			packetToServer.clientPosition = getPoint();
-			packetToServer.clientOrientation = getOrientation();
+			packetToMulticast = new MazewarPacket();
+			packetToMulticast.event = new Event(pID, getLamport(), MazewarPacket.CLIENT_BYE);
+			packetToMulticast.type = MazewarPacket.NEW_EVENT;
+			packetToMulticast.clientName = getName();
+			packetToMulticast.clientPosition = getPoint();
+			packetToMulticast.clientOrientation = getOrientation();
 			
 			// Up-arrow moves forward.
 		} else if (e.getKeyCode() == KeyEvent.VK_UP) {
 			//forward();
-			packetToServer = new MazewarPacket();
-			packetToServer.type = MazewarPacket.CLIENT_FORWARD;
-			packetToServer.clientName = getName();
-			packetToServer.clientPosition = getPoint();
-			packetToServer.clientOrientation = getOrientation();
+			packetToMulticast = new MazewarPacket();
+			packetToMulticast.event = new Event(pID, getLamport(), MazewarPacket.CLIENT_FORWARD);
+			packetToMulticast.type = MazewarPacket.NEW_EVENT;
+			packetToMulticast.clientName = getName();
+			packetToMulticast.clientPosition = getPoint();
+			packetToMulticast.clientOrientation = getOrientation();
 			if (maze.checkMoveClientForward(this)) {
-				packetToServer.clientPosition = packetToServer.clientPosition.move(getOrientation());
+				packetToMulticast.clientPosition = packetToMulticast.clientPosition.move(getOrientation());
 			}
 			// Down-arrow moves backward.
 		} else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
 			//backup();
-			packetToServer = new MazewarPacket();
-			packetToServer.type = MazewarPacket.CLIENT_REVERSE;
-			packetToServer.clientName = getName();
-			packetToServer.clientPosition = getPoint();
-			packetToServer.clientOrientation = getOrientation();
+			packetToMulticast = new MazewarPacket();
+			packetToMulticast.event = new Event(pID, getLamport(), MazewarPacket.CLIENT_REVERSE);
+			packetToMulticast.type = MazewarPacket.NEW_EVENT;
+			packetToMulticast.clientName = getName();
+			packetToMulticast.clientPosition = getPoint();
+			packetToMulticast.clientOrientation = getOrientation();
 			if (maze.checkMoveClientBackward(this)) {
-				packetToServer.clientPosition = packetToServer.clientPosition.move(getOrientation().invert());
+				packetToMulticast.clientPosition = packetToMulticast.clientPosition.move(getOrientation().invert());
 			}
 			// Left-arrow turns left.
 		} else if (e.getKeyCode() == KeyEvent.VK_LEFT) {
 			//turnLeft();
-			packetToServer = new MazewarPacket();
-			packetToServer.type = MazewarPacket.CLIENT_LEFT;
-			packetToServer.clientName = getName();
-			packetToServer.clientPosition = getPoint();
-			packetToServer.clientOrientation = getOrientation().turnLeft();
+			packetToMulticast = new MazewarPacket();
+			packetToMulticast.event = new Event(pID, getLamport(), MazewarPacket.CLIENT_LEFT);
+			packetToMulticast.type = MazewarPacket.NEW_EVENT;
+			packetToMulticast.clientName = getName();
+			packetToMulticast.clientPosition = getPoint();
+			packetToMulticast.clientOrientation = getOrientation().turnLeft();
 			
 			// Right-arrow turns right.
 		} else if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
 			//turnRight();
-			packetToServer = new MazewarPacket();
-			packetToServer.type = MazewarPacket.CLIENT_RIGHT;
-			packetToServer.clientName = getName();
-			packetToServer.clientPosition = getPoint();
-			packetToServer.clientOrientation = getOrientation().turnRight();
+			packetToMulticast = new MazewarPacket();
+			packetToMulticast.event = new Event(pID, getLamport(), MazewarPacket.CLIENT_RIGHT);
+			packetToMulticast.type = MazewarPacket.NEW_EVENT;
+			packetToMulticast.clientName = getName();
+			packetToMulticast.clientPosition = getPoint();
+			packetToMulticast.clientOrientation = getOrientation().turnRight();
 			// Spacebar fires.
 		} else if (e.getKeyCode() == KeyEvent.VK_SPACE) {
 			//fire();
-			packetToServer = new MazewarPacket();
-			packetToServer.type = MazewarPacket.CLIENT_FIRE;
-			packetToServer.clientName = getName();
-			packetToServer.clientPosition = getPoint();
-			packetToServer.clientOrientation = getOrientation();
+			packetToMulticast = new MazewarPacket();
+			packetToMulticast.event = new Event(pID, getLamport(), MazewarPacket.CLIENT_FIRE);
+			packetToMulticast.type = MazewarPacket.NEW_EVENT;
+			packetToMulticast.clientName = getName();
+			packetToMulticast.clientPosition = getPoint();
+			packetToMulticast.clientOrientation = getOrientation();
 		}
 
 		try {
-			if (packetToServer != null) {
-				
-				synchronized (out){
-					out.writeObject(packetToServer);
+			if (packetToMulticast != null) {
+				for (ObjectOutputStream out : this.out){
+					synchronized (out){
+						out.writeObject(packetToMulticast);
+					}
 				}
 			}
 

@@ -25,6 +25,7 @@ class Event implements Serializable{
 	public int timeDeliver;
 	public boolean deliverable;
 	public int pID;
+	public int count;
 	
 	public Event(int pID, int timeSent, int action){
 		this.action = action;
@@ -32,12 +33,14 @@ class Event implements Serializable{
 		this.deliverable = false;
 		this.initTime = timeSent;
 		this.timeDeliver = timeSent;
+		this.count = 0;
 	}
 	
 	public void setDeliverable(int deliverTime){
 		this.deliverable = true;
 		this.timeDeliver = deliverTime;
 	}
+	
 }
 
 public class MazewarPacket implements Serializable {
