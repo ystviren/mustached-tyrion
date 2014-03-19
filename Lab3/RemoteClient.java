@@ -73,11 +73,15 @@ public class RemoteClient extends Client implements Runnable{
 		}
 	}
 
-	public void setInSocket(Socket socket) {
+	public void setInSocket(Socket socket, ObjectInputStream in) {
 		// TODO Auto-generated method stub
 		inSocket = socket;
 		try {
-			myIn = new ObjectInputStream(inSocket.getInputStream());
+			if (in == null) {
+				myIn = new ObjectInputStream(inSocket.getInputStream());
+			} else {
+				myIn = in;
+			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -143,5 +147,22 @@ public class RemoteClient extends Client implements Runnable{
 	public void startThread() {
 		// TODO Auto-generated method stub
 		thread.start();
+	}
+
+
+	public MazewarPacket readObject() {
+		// TODO Auto-generated method stub
+		MazewarPacket ret = null;
+		try {
+			ret = (MazewarPacket)myIn.readObject();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return ret;
 	}
 }

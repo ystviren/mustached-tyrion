@@ -151,24 +151,29 @@ public class Mazewar extends JFrame {
 			Mazewar.quit();
 		}
 
-//		String hostname = JOptionPane.showInputDialog("Enter server location");
-//		if ((hostname == null) || (hostname.length() == 0)) {
-//			Mazewar.quit();
-//		}
-//
 		String hostname = "localhost";
 		
-//		String port = JOptionPane.showInputDialog("Enter port number");
-//		if ((port == null) || (port.length() == 0)) {
-//			Mazewar.quit();
-//		}
+		String port = JOptionPane.showInputDialog("Enter local port number");
+		if ((port == null) || (port.length() == 0)) {
+			Mazewar.quit();
+		}
 
+		String lookup_hostname = JOptionPane.showInputDialog("Enter DNS server location");
+		if ((lookup_hostname == null) || (lookup_hostname.length() == 0)) {
+			Mazewar.quit();
+		}
 		
+	
+		String lookup_port = JOptionPane.showInputDialog("Enter DNS port number");
+		if ((lookup_port == null) || (lookup_port.length() == 0)) {
+			Mazewar.quit();
+		}
 		
 		// initialize the client manager to set up and manage the clients
-		ClientManager clientManager = new ClientManager(maze, LocalName, hostname, port);
+		ClientManager clientManager = new ClientManager(maze, LocalName, hostname, Integer.parseInt(port), lookup_hostname, Integer.parseInt(lookup_port));
 		
 		GUIClient guiClient = clientManager.getLocalClient();
+		this.addKeyListener(guiClient);
 		
 		// Have the ScoreTableModel listen to the maze to find
 		// out how to adjust scores.

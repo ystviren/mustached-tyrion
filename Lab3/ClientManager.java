@@ -28,8 +28,8 @@ public class ClientManager implements MazeListener, Runnable{
 	
 	private Maze maze = null;
 	
-	private final static int player_number;
-	private final static String player_name;
+	private static int player_number;
+	private static String player_name;
 	
 	private Socket lookupServer = null;
 	private final String lookupName;
@@ -61,37 +61,66 @@ public class ClientManager implements MazeListener, Runnable{
 		
 		/** step 1 **/
 		// set up connection to the lookup server
-		lookupServer = new Socket(lookupName, lookupPort);
-		ObjectInputStream lookupIn = new ObjectInputStream(lookupServer.getInputStream());
-		ObjectOutputStream lookupOut = new ObjectOutputStream(lookupServer.getOutputStream());
+		
+		ObjectInputStream lookupIn = null;
+		ObjectOutputStream lookupOut = null;
+		
+		try {
+			lookupServer = new Socket(lookupName, lookupPort);
+			lookupIn = new ObjectInputStream(lookupServer.getInputStream());
+			lookupOut = new ObjectOutputStream(lookupServer.getOutputStream());
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}		
 		
 		// register with the lookup server
 		MazewarPacket outPacket = new MazewarPacket();
 		outPacket.type = MazewarPacket.CLIENT_REGISTER;
 		// TODO: change this to use a packet object
-		outPacket.clientName = ClientManager.player_name;
-		outPacket.clientHostname = local_hostname;
-		outPacket.clientPort = local_port;
+		outPacket.myInfo = new ClientInfo(ClientManager.player_name, local_hostname, local_port, 0);
 		
-		lookupOut.writeObject(outPacket);
+		try {
+			lookupOut.writeObject(outPacket);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		/** step 2 **/
 		// get reply from lookup server
-		MazewarPacket inPacket = (MazewarPacket)lookupIn.readObject();
+		MazewarPacket inPacket = null;
+		try {
+			inPacket = (MazewarPacket)lookupIn.readObject();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		// TODO: SEND BYE PACKET TO NAME SERVER
 		
 		// dont need to talk to the lookup server anymore
-		lookupOut.close();
-		lookupIn.close();
-		lookupServer.close();
+		try {
+			lookupOut.close();
+			lookupIn.close();
+			lookupServer.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		// the lookup server should return a list of names corresponding to all the registered clients (including us)
 		
 		/** Use the list to generate required connections **/
 		
 		// look for our player number
-		player_number = inPacket.clientID;
+		player_number = inPacket.myInfo.clientID;
 		// TODO: check the contents of the packet
 		
 		/** step 3 **/
@@ -116,13 +145,19 @@ public class ClientManager implements MazeListener, Runnable{
 			tmpClient.writeObject(outPacket);
 			
 			// wait for client to reply
-			Socket tmpSocket = mySocket.accept();
+			Socket tmpSocket = null;
+			try {
+				tmpSocket = mySocket.accept();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			
 			// configures input socket, also completes registration by
 			// waiting for incoming register packet with client position
-			tmpClient.setInSocket(tmpSocket);
+			tmpClient.setInSocket(tmpSocket, null);
 			
-			MazewarPacket packetFromRemote = (MazewarPacket)tmpIn.readObject();
+			MazewarPacket packetFromRemote = tmpClient.readObject();
 			// extract position, direction, score
 			Point tmpPos = packetFromRemote.clientPosition;
 			Direction tmpDir = packetFromRemote.clientOrientation;
@@ -140,13 +175,12 @@ public class ClientManager implements MazeListener, Runnable{
 		// now we can place ourselves on the map
 		
 		guiClient = new GUIClient(LocalName);
-		maze.addClient(guiClient);		
-		this.addKeyListener(guiClient);	
+		maze.addClient(guiClient);			
 		
 		// we need to send our position information to everyone
 		outPacket = new MazewarPacket();
 		outPacket.type = MazewarPacket.CLIENT_REGISTER;
-		outPacket.clientName = ClientManager.player_name;
+		outPacket.myInfo = new ClientInfo(ClientManager.player_name, null, 0, ClientManager.player_number);
 		outPacket.clientPosition = guiClient.getPoint();
 		outPacket.clientOrientation = guiClient.getOrientation();
 		
@@ -156,10 +190,8 @@ public class ClientManager implements MazeListener, Runnable{
 		// lamport clock starts at player number to avoid decimals, gets incremented by 100
 		ClientManager.lamportClock = ClientManager.player_number;
 		
-		
 		// setup server socket for receiving incoming connections
-		networkReceiver = new ClientNetworkListener(mySocket, this);
-		
+		networkReceiver = new ClientNetworkListener(mySocket, this);		
 		
 		// start thread for broadcasting and processing command buffer
 		active = true;
@@ -246,173 +278,173 @@ public class ClientManager implements MazeListener, Runnable{
 		
 		// int current_players = 0;
 		
-		while (active) {
-			
-			
-		/** Handle a command from the buffer **/	
-			// broadcast a command as long as the buffer is not empty.
-			// this assumes that the clients are connected
-			synchronized (Client.command_buffer) {
-
-				if (Client.command_buffer.size() > 0) {
-					System.out.println(Client.command_buffer.size());
-					// get the next command from the buffer
-					MazewarPacket broadcast_command = Client.command_buffer.remove(0);
-
-					if ( broadcast_command.type == MazewarPacket.CLIENT_GETCLIENTS ){
-						int lastIndex = Client.list_clients.size()-1;
-						System.out.println("lastindex: " + lastIndex);
-						int j;
-						MazewarPacket tmp = null;
-						for (j=0;j<lastIndex;j++) {
-							tmp = new MazewarPacket();
-							tmp.type = MazewarPacket.CLIENT_GETCLIENTS;
-							tmp.clientName = Client.clientNames.get(j);
-							tmp.clientPosition = Client.clientPositions.get(j);
-							tmp.clientOrientation = Client.clientOrientations.get(j);
-			
-							tmp.clientScore = Client.clientScore.get(j);
-							//System.out.println(MazewarServerHandlerThread.clientNames.get(j) + " has positions " + tmp.clientPosition);
-							Client.outStreams.get(lastIndex).writeObject(tmp);
-						}
-						tmp = new MazewarPacket();
-						tmp.type = MazewarPacket.PACKET_NULL;
-						Client.outStreams.get(lastIndex).writeObject(tmp);
-						continue;	
-					}else if (broadcast_command.type == MazewarPacket.CLIENT_SCORE_SEND){
-						int i;
-						for (i = 0; i < Client.clientNames.size(); i++) {
-							if (broadcast_command.clientName.equals(Client.clientNames.get(i))) {
-								System.out.println("Updated score to " + broadcast_command.clientScore);
-								Client.clientScore.set(i, broadcast_command.clientScore);
-								break;
-							}
-						}
-						continue;
-					}
-					
-					// broadcast to clients
-					int i = 0;
-					for (i = 0; i < Client.outStreams.size(); i++) {
-						Client.outStreams.get(i).writeObject(broadcast_command);
-						System.out.println("Sent Packet " + broadcast_command.type);
-					}
-
-
-				} // end of buffer send
-			}
-		
-
-		
-		/** Handle multicast of locally queued commands **/
-		
-			try {	
-				/* check here that server received? */
-							
-				
-	
-					/* print server reply */
-					System.out.println("before in read");
-					packetFromServer = (MazewarPacket) in.readObject();
-					
-					System.out.println("after in read" + " " + packetFromServer.type);
-					
-					Client target = null;
-					
-					// identify the client targeted for action
-					if (packetFromServer.type != MazewarPacket.PACKET_NULL) {
-						int i;
-						for (i = 0; i < clients.size(); i++) {
-							System.out.println(clients.get(i).getName());
-							System.out.println(packetFromServer.clientName);
-							
-							if (clients.get(i).getName().equals(packetFromServer.clientName)) {
-								System.out.println("got target");
-								target = clients.get(i);
-								break;
-							}
-						}
-	
-					}
-					
-					assert(target != null);
-					
-					// add new clients
-					
-					else if (packetFromServer.type == MazewarPacket.CLIENT_REMOVE) {
-						//targetClient.forward();
-						maze.removeClient(target);
-						clients.remove(target);
-					}
-					
-					
-					if (packetFromServer.type == MazewarPacket.CLIENT_FORWARD) {
-						System.out.println("forward");
-						target.forward();
-					} 
-					else if (packetFromServer.type == MazewarPacket.CLIENT_REVERSE) {
-						System.out.println("back");
-						target.backup();
-					}
-					else if (packetFromServer.type == MazewarPacket.CLIENT_LEFT) {
-						System.out.println("left");
-						target.turnLeft();
-					}
-					else if (packetFromServer.type == MazewarPacket.CLIENT_RIGHT) {
-						System.out.println("right");
-						target.turnRight();
-					}
-					
-					
-					if (packetFromServer.type == MazewarPacket.CLIENT_FIRE) {
-						target.fire();
-					}
-					else if (packetFromServer.type == MazewarPacket.CLIENT_KILLED) {
-						System.out.println("processing client death");
-						Client source = null;
-						//search for source client
-						int i;
-						for (i = 0; i < clients.size(); i++) {
-							if (clients.get(i).getName().equals(packetFromServer.sourceName)) {
-								source = clients.get(i);
-							}
-						}
-						
-						assert(source != null);
-		                assert(target != null);
-		                
-		                System.out.println(source.getName() + " killed " + target.getName());
-		                
-		                
-		                //if this is being received by someone other than the client that died, need to update position of client that died
-		                if (!target.getName().equals(guiClient.getName())) {
-		                	Mazewar.consolePrintLn(source.getName() + " just vaporized " + target.getName());
-		                	System.out.println("reposition: " + packetFromServer.clientOrientation.toString());
-		                	maze.repositionClient(target, packetFromServer.clientPosition, packetFromServer.clientOrientation);
-		                	// notify everybody that the kill happened
-			                maze.notifyKill(source, target);
-		                }else{
-		                	updateScore(guiClient, guiClient.getClientScore(guiClient));
-		                	updateScore(source, source.getClientScore(source));
-		                }	                
-		                
-					}
-					else if (packetFromServer.type == MazewarPacket.CLIENT_SCORE_UPDATE){
-						maze.notifyClientFiredPublic(target);
-						updateScore(target, target.getClientScore(target));
-						System.out.println(target.getClientScore(target));
-					}
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-				System.err.println("ERROR: Couldn't get I/O for the connection.");
-				System.exit(1);
-			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				System.exit(1);
-			}
-	}
+//		while (active) {
+//			
+//			
+//		/** Handle a command from the buffer **/	
+//			// broadcast a command as long as the buffer is not empty.
+//			// this assumes that the clients are connected
+//			synchronized (Client.command_buffer) {
+//
+//				if (Client.command_buffer.size() > 0) {
+//					System.out.println(Client.command_buffer.size());
+//					// get the next command from the buffer
+//					MazewarPacket broadcast_command = Client.command_buffer.remove(0);
+//
+//					if ( broadcast_command.type == MazewarPacket.CLIENT_GETCLIENTS ){
+//						int lastIndex = Client.list_clients.size()-1;
+//						System.out.println("lastindex: " + lastIndex);
+//						int j;
+//						MazewarPacket tmp = null;
+//						for (j=0;j<lastIndex;j++) {
+//							tmp = new MazewarPacket();
+//							tmp.type = MazewarPacket.CLIENT_GETCLIENTS;
+//							tmp.clientName = Client.clientNames.get(j);
+//							tmp.clientPosition = Client.clientPositions.get(j);
+//							tmp.clientOrientation = Client.clientOrientations.get(j);
+//			
+//							tmp.clientScore = Client.clientScore.get(j);
+//							//System.out.println(MazewarServerHandlerThread.clientNames.get(j) + " has positions " + tmp.clientPosition);
+//							Client.outStreams.get(lastIndex).writeObject(tmp);
+//						}
+//						tmp = new MazewarPacket();
+//						tmp.type = MazewarPacket.PACKET_NULL;
+//						Client.outStreams.get(lastIndex).writeObject(tmp);
+//						continue;	
+//					}else if (broadcast_command.type == MazewarPacket.CLIENT_SCORE_SEND){
+//						int i;
+//						for (i = 0; i < Client.clientNames.size(); i++) {
+//							if (broadcast_command.clientName.equals(Client.clientNames.get(i))) {
+//								System.out.println("Updated score to " + broadcast_command.clientScore);
+//								Client.clientScore.set(i, broadcast_command.clientScore);
+//								break;
+//							}
+//						}
+//						continue;
+//					}
+//					
+//					// broadcast to clients
+//					int i = 0;
+//					for (i = 0; i < Client.outStreams.size(); i++) {
+//						Client.outStreams.get(i).writeObject(broadcast_command);
+//						System.out.println("Sent Packet " + broadcast_command.type);
+//					}
+//
+//
+//				} // end of buffer send
+//			}
+//		
+//
+//		
+//		/** Handle multicast of locally queued commands **/
+//		
+//			try {	
+//				/* check here that server received? */
+//							
+//				
+//	
+//					/* print server reply */
+//					System.out.println("before in read");
+//					packetFromServer = (MazewarPacket) in.readObject();
+//					
+//					System.out.println("after in read" + " " + packetFromServer.type);
+//					
+//					Client target = null;
+//					
+//					// identify the client targeted for action
+//					if (packetFromServer.type != MazewarPacket.PACKET_NULL) {
+//						int i;
+//						for (i = 0; i < clients.size(); i++) {
+//							System.out.println(clients.get(i).getName());
+//							System.out.println(packetFromServer.clientName);
+//							
+//							if (clients.get(i).getName().equals(packetFromServer.clientName)) {
+//								System.out.println("got target");
+//								target = clients.get(i);
+//								break;
+//							}
+//						}
+//	
+//					}
+//					
+//					assert(target != null);
+//					
+//					// add new clients
+//					
+//					else if (packetFromServer.type == MazewarPacket.CLIENT_REMOVE) {
+//						//targetClient.forward();
+//						maze.removeClient(target);
+//						clients.remove(target);
+//					}
+//					
+//					
+//					if (packetFromServer.type == MazewarPacket.CLIENT_FORWARD) {
+//						System.out.println("forward");
+//						target.forward();
+//					} 
+//					else if (packetFromServer.type == MazewarPacket.CLIENT_REVERSE) {
+//						System.out.println("back");
+//						target.backup();
+//					}
+//					else if (packetFromServer.type == MazewarPacket.CLIENT_LEFT) {
+//						System.out.println("left");
+//						target.turnLeft();
+//					}
+//					else if (packetFromServer.type == MazewarPacket.CLIENT_RIGHT) {
+//						System.out.println("right");
+//						target.turnRight();
+//					}
+//					
+//					
+//					if (packetFromServer.type == MazewarPacket.CLIENT_FIRE) {
+//						target.fire();
+//					}
+//					else if (packetFromServer.type == MazewarPacket.CLIENT_KILLED) {
+//						System.out.println("processing client death");
+//						Client source = null;
+//						//search for source client
+//						int i;
+//						for (i = 0; i < clients.size(); i++) {
+//							if (clients.get(i).getName().equals(packetFromServer.sourceName)) {
+//								source = clients.get(i);
+//							}
+//						}
+//						
+//						assert(source != null);
+//		                assert(target != null);
+//		                
+//		                System.out.println(source.getName() + " killed " + target.getName());
+//		                
+//		                
+//		                //if this is being received by someone other than the client that died, need to update position of client that died
+//		                if (!target.getName().equals(guiClient.getName())) {
+//		                	Mazewar.consolePrintLn(source.getName() + " just vaporized " + target.getName());
+//		                	System.out.println("reposition: " + packetFromServer.clientOrientation.toString());
+//		                	maze.repositionClient(target, packetFromServer.clientPosition, packetFromServer.clientOrientation);
+//		                	// notify everybody that the kill happened
+//			                maze.notifyKill(source, target);
+//		                }else{
+//		                	updateScore(guiClient, guiClient.getClientScore(guiClient));
+//		                	updateScore(source, source.getClientScore(source));
+//		                }	                
+//		                
+//					}
+//					else if (packetFromServer.type == MazewarPacket.CLIENT_SCORE_UPDATE){
+//						maze.notifyClientFiredPublic(target);
+//						updateScore(target, target.getClientScore(target));
+//						System.out.println(target.getClientScore(target));
+//					}
+//				}
+//			} catch (IOException e) {
+//				e.printStackTrace();
+//				System.err.println("ERROR: Couldn't get I/O for the connection.");
+//				System.exit(1);
+//			} catch (ClassNotFoundException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//				System.exit(1);
+//			}
+//	}
 }
 
 	// Extra functions
@@ -434,36 +466,70 @@ public class ClientManager implements MazeListener, Runnable{
 		}
 	}
 
-	public void addRemoteClient(String tmpName, String tmpHostname, int tmpPort, int tmpID) {
+	public void addRemoteClient(Socket newSocket) {
 		// TODO Auto-generated method stub
 		
-		RemoteClient tmpClient = new RemoteClient(tmpName, tmpHostname, tmpPort, tmpID); 
-		remoteClients.add(tmpClient);
-		maze.addClient(tmpClient);
+		// wait for the client to send us their info
+		ObjectInputStream tmpIn = null;;
+		try {
+			tmpIn = new ObjectInputStream(newSocket.getInputStream());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
-		// create output sockets for each client and send them a register packet
-		tmpClient.writeObject(outPacket);
+		MazewarPacket packetFromRemote = null;
+		try {
+			packetFromRemote = (MazewarPacket)tmpIn.readObject();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
-		// wait for client to reply
-		Socket tmpSocket = mySocket.accept();
-		ObjectInputStream tmpIn = new ObjectInputStream(tmpSocket.getInputStream());
-		// configures input socket, also completes registration by
-		// waiting for incoming register packet with client position
-		tmpClient.setInSocket(tmpSocket);
+		// Set up the new remote client object
+		String newName = packetFromRemote.myInfo.clientName;
+		String newHostname = packetFromRemote.myInfo.clientHostname;
+		int newPort = packetFromRemote.myInfo.clientPort;
+		int newID = packetFromRemote.myInfo.clientID;
+		
+		RemoteClient newClient = new RemoteClient(newName, newHostname, newPort, newID);
+		newClient.setInSocket(newSocket, tmpIn);
+		remoteClients.add(newClient);
+		maze.addClient(newClient);
+		
+		// we need to send a packet to the new client with our new info
+		MazewarPacket outPacket = new MazewarPacket();
+		outPacket.myInfo = new ClientInfo(ClientManager.player_name, null, 0, ClientManager.player_number);
+		outPacket.clientPosition = guiClient.getPoint();
+		outPacket.clientOrientation = guiClient.getOrientation();
+		outPacket.clientScore = guiClient.getClientScore(guiClient);
+		newClient.writeObject(outPacket);
 		
 		//wait for client to send us its position and score info
-		MazewarPacket packetFromRemote = (MazewarPacket)tmpIn.readObject();
+		try {
+			packetFromRemote = (MazewarPacket)tmpIn.readObject();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		// extract position, direction, score
 		Point tmpPos = packetFromRemote.clientPosition;
 		Direction tmpDir = packetFromRemote.clientOrientation;
 		int tmpScore = packetFromRemote.clientScore;
 		
-		maze.repositionClient(tmpClient, tmpPos, tmpDir);
+		maze.repositionClient(newClient, tmpPos, tmpDir);
 		// update the score
-		tmpClient.clientSetScore(tmpClient, tmpScore);
+		newClient.clientSetScore(newClient, tmpScore);
 		
 		// start listening for stuff to throw in the command buffer
-		tmpClient.startThread();
+		newClient.startThread();
 	}
 	
 }

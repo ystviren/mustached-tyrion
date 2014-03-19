@@ -30,6 +30,7 @@ public class ClientNetworkListener implements Runnable {
 		// this thread simply listens for new client connections and creates threads for handling them
 	    while (listening) {
 	    	try {
+	    		// when a new socket is opened, we don't know anything about this new client
 	    		manager.addRemoteClient(mySocket.accept());
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
