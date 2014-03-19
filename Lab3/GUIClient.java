@@ -38,6 +38,7 @@ import java.util.List;
 public class GUIClient extends LocalClient implements KeyListener {
 	List<ObjectOutputStream> out = null;
 	int pID;
+	
 	/**
 	 * Create a GUI controlled {@link LocalClient}.
 	 */
@@ -46,6 +47,7 @@ public class GUIClient extends LocalClient implements KeyListener {
 		this.out = new ArrayList<ObjectOutputStream>();
 		this.out.add(out);
 		this.pID = pID;
+		
 	}
 
 	public GUIClient(String name) {

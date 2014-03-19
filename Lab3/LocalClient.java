@@ -33,6 +33,7 @@ USA.
 public abstract class LocalClient extends Client {
 
 		protected Socket socket = null;
+		int lamportClock;
 	
         /** 
          * Create a {@link Client} local to this machine.
