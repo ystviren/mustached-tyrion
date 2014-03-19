@@ -43,15 +43,11 @@ public class GUIClient extends LocalClient implements KeyListener {
 	 * Create a GUI controlled {@link LocalClient}.
 	 */
 	public GUIClient(String name, int pID, ObjectOutputStream out) {
-		super(name);
+		super(name, pID);
 		this.out = new ArrayList<ObjectOutputStream>();
 		this.out.add(out);
 		this.pID = pID;
 		
-	}
-
-	public GUIClient(String name) {
-		super(name);
 	}
 	
 	public void addClient(ObjectOutputStream out){
@@ -145,6 +141,7 @@ public class GUIClient extends LocalClient implements KeyListener {
 						out.writeObject(packetToMulticast);
 					}
 				}
+				addSorted(packetToMulticast.event);
 			}
 
 		} catch (IOException e1) {
