@@ -25,7 +25,10 @@ class Event implements Serializable{
 	public int timeDeliver;
 	public boolean deliverable;
 	public int pID;
+	public int pID2;
 	public int count;
+	public Point location;
+	public Direction orientation;
 	
 	public Event(int pID, int timeSent, int action){
 		this.action = action;

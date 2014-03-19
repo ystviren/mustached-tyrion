@@ -38,6 +38,7 @@ public abstract class Client {
 		public static List<Event> queue = new ArrayList<Event>();
 		
 		
+		
 		public void addSorted(Event event){
 			if (queue.size() == 0){
 				queue.add(event);
@@ -115,6 +116,10 @@ public abstract class Client {
          */
         public String getName() {
                 return name;
+        }
+        
+        public int getID(){
+        	return pID;
         }
       
         /**

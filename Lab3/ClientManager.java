@@ -247,100 +247,83 @@ public class ClientManager implements MazeListener, Runnable{
 		
 		while (active) {
 			// commit actions that are deliverable
-			if (Client.queue.get(0).isdeliverable) {
-				Event newEvent = Client.queue.remove(0);
+			Event newEvent = null;
+			if (Client.queue.size() > 0 ) {
+				newEvent = Client.queue.get(0);
+			} else {
+				continue;
+			}
+			
+			if (newEvent.deliverable) {
+				// now we can remove it from the queue
+				Client.queue.remove(0);
 				
 				// parse the contents and commit them
 				/** deliver a command **/		
-				Client target = null;
+//				public int action;
+//				public int initTime;
+//				public int timeDeliver;
+//				public boolean deliverable;
+//				public int pID;
+//				public int count;
 					
-					// identify the client targeted for action
-				if (packetFromServer.type != MazewarPacket.PACKET_NULL) {
-					int i;
-					for (i = 0; i < clients.size(); i++) {
-						System.out.println(clients.get(i).getName());
-						System.out.println(packetFromServer.clientName);
-						
-						if (clients.get(i).getName().equals(packetFromServer.clientName)) {
-							System.out.println("got target");
-							target = clients.get(i);
-							break;
-						}
-					}
-
-				}
+				//identify the client targeted for action
+				Client target = getClient(newEvent.pID);
 				
 				assert(target != null);
 				
-				// add new clients
-				
-				else if (packetFromServer.type == MazewarPacket.CLIENT_REMOVE) {
-					//targetClient.forward();
-					maze.removeClient(target);
-					clients.remove(target);
+				if (newEvent.action == MazewarPacket.CLIENT_REMOVE) {
+//					maze.removeClient(target);
+//					clients.remove(target);
 				}
-				
-				
-				if (packetFromServer.type == MazewarPacket.CLIENT_FORWARD) {
-					System.out.println("forward");
+							
+				if (newEvent.action == MazewarPacket.CLIENT_FORWARD) {
+					//System.out.println("forward");
 					target.forward();
 				} 
-				else if (packetFromServer.type == MazewarPacket.CLIENT_REVERSE) {
-					System.out.println("back");
+				else if (newEvent.action == MazewarPacket.CLIENT_REVERSE) {
+					//System.out.println("back");
 					target.backup();
 				}
-				else if (packetFromServer.type == MazewarPacket.CLIENT_LEFT) {
-					System.out.println("left");
+				else if (newEvent.action == MazewarPacket.CLIENT_LEFT) {
+					//System.out.println("left");
 					target.turnLeft();
 				}
-				else if (packetFromServer.type == MazewarPacket.CLIENT_RIGHT) {
-					System.out.println("right");
+				else if (newEvent.action == MazewarPacket.CLIENT_RIGHT) {
+					//System.out.println("right");
 					target.turnRight();
 				}
 				
-				
-				if (packetFromServer.type == MazewarPacket.CLIENT_FIRE) {
-					target.fire();
+				if (newEvent.action == MazewarPacket.CLIENT_FIRE) {
+					//target.fire();
 				}
-				else if (packetFromServer.type == MazewarPacket.CLIENT_KILLED) {
-					System.out.println("processing client death");
-					Client source = null;
-					//search for source client
-					int i;
-					for (i = 0; i < clients.size(); i++) {
-						if (clients.get(i).getName().equals(packetFromServer.sourceName)) {
-							source = clients.get(i);
-						}
-					}
+				else if (newEvent.action == MazewarPacket.CLIENT_KILLED) {
+					//System.out.println("processing client death");
+					Client source = getClient(newEvent.pID2);
 					
 					assert(source != null);
-	                assert(target != null);
-	                
-	                System.out.println(source.getName() + " killed " + target.getName());
-	                
-	                
+
 	                //if this is being received by someone other than the client that died, need to update position of client that died
 	                if (!target.getName().equals(guiClient.getName())) {
 	                	Mazewar.consolePrintLn(source.getName() + " just vaporized " + target.getName());
-	                	System.out.println("reposition: " + packetFromServer.clientOrientation.toString());
-	                	maze.repositionClient(target, packetFromServer.clientPosition, packetFromServer.clientOrientation);
+	                	//System.out.println("reposition: " + packetFromServer.clientOrientation.toString());
+	                	maze.repositionClient(target, newEvent.location, newEvent.orientation);
 	                	// notify everybody that the kill happened
 		                maze.notifyKill(source, target);
-	                }else{
-	                	updateScore(guiClient, guiClient.getClientScore(guiClient));
-	                	updateScore(source, source.getClientScore(source));
-	                }	                
+	                }
+//	                else{
+//	                	updateScore(guiClient, guiClient.getClientScore(guiClient));
+//	                	updateScore(source, source.getClientScore(source));
+//	                }	                
 	                
 				}
-				else if (packetFromServer.type == MazewarPacket.CLIENT_SCORE_UPDATE){
-					maze.notifyClientFiredPublic(target);
-					updateScore(target, target.getClientScore(target));
-					System.out.println(target.getClientScore(target));
-				}
+//				else if (newEvent.action == MazewarPacket.CLIENT_SCORE_UPDATE){
+//					maze.notifyClientFiredPublic(target);
+//					updateScore(target, target.getClientScore(target));
+//					System.out.println(target.getClientScore(target));
+//				}
 
 			}
-			
-			
 		} // end of while loop
 	} // end of run function
 
@@ -363,6 +346,29 @@ public class ClientManager implements MazeListener, Runnable{
 //			}
 //		}
 //	}
+
+	private Client getClient(int pID) {
+		// TODO Auto-generated method stub
+		Client target = null;
+		
+		int i;
+		// search in remote clients first
+		for (i = 0; i < remoteClients.size(); i++) {
+			if (remoteClients.get(i).getID() == pID) {
+				target = remoteClients.get(i);
+				break;
+			}
+		}
+		
+		if (target == null) {
+			// should be guiClient then
+			if (guiClient.getID() == pID) {
+				target = guiClient;
+			}
+		}
+		
+		return target;
+	}
 
 	public void addRemoteClient(Socket newSocket) {
 		// TODO Auto-generated method stub
