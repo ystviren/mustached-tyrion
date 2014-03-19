@@ -43,16 +43,18 @@ public abstract class LocalClient extends Client {
          */
 		
 		// TODO: make constructor have pID
-        public LocalClient(String name, Socket socket) {
-                super(name);
+        public LocalClient(String name, Socket socket, int pID) {
+                super(name, pID);
                 this.socket = socket;
                 assert(name != null);
-                pID = 0;
+                this.pID = pID;
+               
         }
         
-        public LocalClient(String name) {
-            super(name);
+        public LocalClient(String name, int pID) {
+            super(name, pID);
             assert(name != null);
+            this.pID = pID;
         }
 
         /**
