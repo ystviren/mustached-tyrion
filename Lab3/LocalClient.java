@@ -33,18 +33,21 @@ USA.
 public abstract class LocalClient extends Client {
 
 		protected Socket socket = null;
-		int lamportClock;
-	
+		int pID;
+		
         /** 
          * Create a {@link Client} local to this machine.
          * @param name The name of this {@link Client}.
          * Modified to include the socket of itself in order to maintain
          * the open connection
          */
+		
+		// TODO: make constructor have pID
         public LocalClient(String name, Socket socket) {
                 super(name);
                 this.socket = socket;
                 assert(name != null);
+                pID = 0;
         }
         
         public LocalClient(String name) {
@@ -56,5 +59,6 @@ public abstract class LocalClient extends Client {
          * Fill in here??
          */
         
+
 
 }
