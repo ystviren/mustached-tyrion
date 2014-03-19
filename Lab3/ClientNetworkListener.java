@@ -7,7 +7,7 @@ public class ClientNetworkListener implements Runnable {
 	
 	private ServerSocket mySocket = null;
     private boolean listening = false;
-    private ClientManager manager = null
+    private ClientManager manager = null;
     private final Thread thread;
 	
 	

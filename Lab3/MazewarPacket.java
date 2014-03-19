@@ -86,6 +86,7 @@ public class MazewarPacket implements Serializable {
 	/* message header */
 	public int type = MazewarPacket.PACKET_NULL;
 	
+	public String clientName; 
 	public Point clientPosition;
 	public Direction clientOrientation;
 	public int clientScore;
