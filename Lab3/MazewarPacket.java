@@ -94,14 +94,11 @@ public class MazewarPacket implements Serializable {
 	
 	public int mapSeed;
 	
-<<<<<<< HEAD
+
 	public List<ClientInfo> remoteList = null;
-=======
 	//  make client hold its own Info
 	public ClientInfo myInfo = null;
 	
-	List<ClientInfo> remoteList = null;
->>>>>>> d4dfd7509958f9bc87f6d7f6613e71649d892f03
 	
 	
 	// event packet
