@@ -35,7 +35,7 @@ import java.util.List;
  * @version $Id: GUIClient.java 343 2004-01-24 03:43:45Z geoffw $
  */
 
-public class GUIClient extends LocalClient implements KeyListener {
+public class GUIClient extends LocalClient implements KeyListener, MazeListener {
 	List<ObjectOutputStream> out = null;
 	int pID;
 	
@@ -170,6 +170,63 @@ public class GUIClient extends LocalClient implements KeyListener {
 	 *            The {@link KeyEvent} that occurred.
 	 */
 	public void keyTyped(KeyEvent e) {
+	}
+
+	@Override
+	public void mazeUpdate() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void clientKilled(Client source, Client target) {
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		
+		//ObjectOutputStream out = null;
+		if (target.getName().equals(guiClient.getName()) ) {
+			try {
+				System.out.println("I died");
+	
+				MazewarPacket packetToServer = new MazewarPacket();
+				packetToServer.type = MazewarPacket.CLIENT_KILLED;
+				packetToServer.clientName = target.getName();
+				packetToServer.sourceName = source.getName();
+				packetToServer.clientPosition = guiClient.getPoint();
+				packetToServer.clientOrientation = guiClient.getOrientation();
+				System.out.println("reposition: " + packetToServer.clientOrientation.toString());
+				
+				synchronized(out){
+				out.writeObject(packetToServer);
+				}
+				//updateScore(source, source.getClientScore(source));
+				//updateScore(target, target.getClientScore(target));
+				
+	
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+	}
+
+	@Override
+	public void clientAdded(Client client) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void clientFired(Client client) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void clientRemoved(Client client) {
+		// TODO Auto-generated method stub
+		
 	}
 
 	
