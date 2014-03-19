@@ -13,7 +13,7 @@ public class MazewarNameServerHandlerThread extends Thread {
 		super("BrokerServerHandlerThread");
 		connectedClients = new ArrayList<ClientInfo>();
 		this.socket = socket;
-		pID = 0;
+		pID = 1;
 		System.out.println("Created new Thread to handle client");
 	}
 
