@@ -33,9 +33,29 @@ import java.util.Iterator;
  * @version $Id: Client.java 343 2004-01-24 03:43:45Z geoffw $
  */
 public abstract class Client {
-		
-		protected static List<MazewarPacket> command_buffer;
 	
+		private static int lamportClock = 0;
+		private static List<ActionQueue> queue = new ArrayList<ActionQueue>();
+        /**
+         * Name of the client.
+         */
+        private String name = null;
+        
+        private int pID;
+       
+        /** 
+         * Create a new client with the specified name.
+         */
+        protected Client(String name, int pID) {
+                assert(name != null);
+                this.name = name;  
+                this.pID = pID;
+                if (lamportClock == 0){
+                	lamportClock = pID;
+                }
+
+        }
+		
         /**
          * Register this {@link Client} as being contained by the specified
          * {@link Maze}.  Naturally a {@link Client} cannot be registered with
@@ -120,24 +140,6 @@ public abstract class Client {
          */
         private Set listenerSet = new HashSet();
         
-        /**
-         * Name of the client.
-         */
-        private String name = null;
-        
-        private int ID = 0;
-       
-        /** 
-         * Create a new client with the specified name.
-         */
-        protected Client(String name, int ID) {
-                assert(name != null);
-                this.name = name;  
-                if (Client.command_buffer == null) {
-                	Client.command_buffer = new ArrayList<MazewarPacket>();
-                }
-                this.ID = ID;
-        }
         
         /**
          * Move the client forward.
