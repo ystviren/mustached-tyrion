@@ -81,12 +81,16 @@ public class ClientManager implements MazeListener, Runnable{
 		// get reply from lookup server
 		MazewarPacket inPacket = (MazewarPacket)lookupIn.readObject();
 		
+		lookupOut.close();
+		lookupIn.close();
+		lookupServer.close();
+		
 		// the lookup server should return a list of names corresponding to all the registered clients (including us)
 		
 		/** Use the list to generate required connections **/
 		
 		// look for our player number
-		player_number = inPacket.playerID;
+		player_number = inPacket.clientID;
 		
 		/** step 3 **/
 		// iterate through the list the name server gave us and set up remote clients
@@ -150,7 +154,7 @@ public class ClientManager implements MazeListener, Runnable{
 	
 	public GUIClient getLocalClient() {
 		// TODO Auto-generated method stub
-		return null;
+		return this.guiClient;
 	}
 	
 	@Override
