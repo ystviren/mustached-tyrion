@@ -18,8 +18,10 @@ USA.
 */
   
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
@@ -122,13 +124,19 @@ public abstract class Client {
          * Name of the client.
          */
         private String name = null;
+        
+        private int ID = 0;
        
         /** 
          * Create a new client with the specified name.
          */
-        protected Client(String name) {
+        protected Client(String name, int ID) {
                 assert(name != null);
-                this.name = name;               
+                this.name = name;  
+                if (Client.command_buffer == null) {
+                	Client.command_buffer = new ArrayList<MazewarPacket>();
+                }
+                this.ID = ID;
         }
         
         /**

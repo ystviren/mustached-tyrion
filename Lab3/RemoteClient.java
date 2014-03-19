@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -32,22 +33,24 @@ USA.
 
 public class RemoteClient extends Client implements Runnable{
 	
-	private final Thread thread;
+	private Thread thread = null;
+	private Socket outSocket = null;
+	private ObjectOutputStream myOut = null;
 	
-	private Socket remoteSocket = null;
-	private ObjectInputStream remoteIn = null;
+	private Socket inSocket = null;
+	private ObjectInputStream myIn = null;
+	
 	
     /**
      * Create a remotely controlled {@link Client}.
      * @param name Name of this {@link RemoteClient}.
      */
-    public RemoteClient(String name, String remoteName, int remotePort) {
-            super(name);
-    		
+    public RemoteClient(String name, String hostname, int port, int ID) {
+            super(name, ID);
+            
             try {
-				remoteSocket = new Socket(remoteName, remotePort);
-				remoteIn = new ObjectInputStream(remoteSocket.getInputStream());
-				
+				outSocket = new Socket(hostname, port);
+				myOut = new ObjectOutputStream(outSocket.getOutputStream());		
 			} catch (UnknownHostException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -59,9 +62,32 @@ public class RemoteClient extends Client implements Runnable{
     		thread = new Thread(this);	
     }
 
+
+	public void writeObject(MazewarPacket outPacket) {
+		// TODO Auto-generated method stub
+		try {
+			myOut.writeObject(outPacket);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	public void setInSocket(Socket socket) {
+		// TODO Auto-generated method stub
+		inSocket = socket;
+		try {
+			myIn = new ObjectInputStream(inSocket.getInputStream());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+    
 	@Override
 	public void run() {
 		// TODO Auto-generated method stub
+		
 		boolean gotByePacket = false;
 
 		try {
@@ -100,8 +126,8 @@ public class RemoteClient extends Client implements Runnable{
 			}
 
 			/* cleanup when client exits */
-			remoteIn.close();
-			remoteSocket.close();
+			myIn.close();
+			inSocket.close();
 		
 		} catch (IOException e) {
 			if (!gotByePacket)
@@ -111,5 +137,11 @@ public class RemoteClient extends Client implements Runnable{
 				e.printStackTrace();
 		}
 	
+	}
+
+
+	public void startThread() {
+		// TODO Auto-generated method stub
+		thread.start();
 	}
 }

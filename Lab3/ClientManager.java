@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -8,11 +9,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-
 public class ClientManager implements MazeListener, Runnable{
 	
 	private ServerSocket mySocket = null;
-	private List<Socket> clientSockets = null;
+	//private List<Socket> clientSockets = null;
 	private List<RemoteClient> remoteClients = null;
 	//private int supported_ports[] = {4444,4445,4446,4447};
 
@@ -59,9 +59,6 @@ public class ClientManager implements MazeListener, Runnable{
 		lookupName = lookup_hostname;
 		lookupPort = lookup_port;
 		
-		// setup server socket for receiving incoming connections, we dont start listening until later
-		mySocket = new ServerSocket(local_port);
-		
 		/** step 1 **/
 		// set up connection to the lookup server
 		lookupServer = new Socket(lookupName, lookupPort);
@@ -71,6 +68,7 @@ public class ClientManager implements MazeListener, Runnable{
 		// register with the lookup server
 		MazewarPacket outPacket = new MazewarPacket();
 		outPacket.type = MazewarPacket.CLIENT_REGISTER;
+		// TODO: change this to use a packet object
 		outPacket.clientName = ClientManager.player_name;
 		outPacket.clientHostname = local_hostname;
 		outPacket.clientPort = local_port;
@@ -81,6 +79,9 @@ public class ClientManager implements MazeListener, Runnable{
 		// get reply from lookup server
 		MazewarPacket inPacket = (MazewarPacket)lookupIn.readObject();
 		
+		// TODO: SEND BYE PACKET TO NAME SERVER
+		
+		// dont need to talk to the lookup server anymore
 		lookupOut.close();
 		lookupIn.close();
 		lookupServer.close();
@@ -91,37 +92,48 @@ public class ClientManager implements MazeListener, Runnable{
 		
 		// look for our player number
 		player_number = inPacket.clientID;
+		// TODO: check the contents of the packet
 		
 		/** step 3 **/
 		// iterate through the list the name server gave us and set up remote clients
+		String tmpName = null;
+		String tmpHostname = null;
+		int tmpPort = 0;
+		int tmpID = 0;
+		
 		int i;
 		for (i = 0; i < inPacket.remoteList.size(); i++) {
-			String tmpName = inPacket.remoteList.get(i).player_name;
-			String tmpHostname = inPacket.remoteList.get(i).hostname;
-			int tmpPort = inPacket.remoteList.get(i).port;
+			tmpName = inPacket.remoteList.get(i).clientName;
+			tmpHostname = inPacket.remoteList.get(i).clientHostname;
+			tmpPort = inPacket.remoteList.get(i).clientPort;
+			tmpID = inPacket.remoteList.get(i).clientID;
+			
+			RemoteClient tmpClient = new RemoteClient(tmpName, tmpHostname, tmpPort, tmpID); 
+			remoteClients.add(tmpClient);
+			maze.addClient(tmpClient);
 			
 			// create output sockets for each client and send them a register packet
-			clientSockets.add(new Socket(tmpHostname, tmpPort));
-			out_streams.add(new ObjectOutputStream(clientSockets.get(i).getOutputStream());
+			tmpClient.writeObject(outPacket);
 			
-			out_streams.get(i).writeObject(outPacket);
-		}
-		
-		
-		// wait for each client to connect
-		for (i = 0; i < inPacket.remoteList.size(); i++) {
+			// wait for client to reply
 			Socket tmpSocket = mySocket.accept();
-			// process packets from the other clients in here
-			remoteClients.add(new RemoteClient(tmpName, tmpHostname, tmpPort));
-		}
-					
-		// add the remote clients to the maze
-		for (i = 0; i < remoteClients.size(); i++) {
-			maze.addClient(remoteClients.get(i));
-			// move the clients to their current position and orientation
-			maze.repositionClient(client, position, dir);
+			
+			// configures input socket, also completes registration by
+			// waiting for incoming register packet with client position
+			tmpClient.setInSocket(tmpSocket);
+			
+			MazewarPacket packetFromRemote = (MazewarPacket)tmpIn.readObject();
+			// extract position, direction, score
+			Point tmpPos = packetFromRemote.clientPosition;
+			Direction tmpDir = packetFromRemote.clientOrientation;
+			int tmpScore = packetFromRemote.clientScore;
+			
+			maze.repositionClient(tmpClient, tmpPos, tmpDir);
 			// update the score
-			remoteClients.get(i).clientSetScore(c, mod);
+			tmpClient.clientSetScore(tmpClient, tmpScore);
+			
+			// start listening for stuff to throw in the command buffer
+			tmpClient.startThread();
 		}
 		
 		// at this point we should have all the remote clients placed and scores up to date
@@ -135,16 +147,19 @@ public class ClientManager implements MazeListener, Runnable{
 		outPacket = new MazewarPacket();
 		outPacket.type = MazewarPacket.CLIENT_REGISTER;
 		outPacket.clientName = ClientManager.player_name;
-		outPacket.clientHostname = local_hostname;
-		outPacket.clientPort = local_port;
+		outPacket.clientPosition = guiClient.getPoint();
+		outPacket.clientOrientation = guiClient.getOrientation();
 		
 		// multicast
-		for (i = 0; i < remoteClients.size(); i++) {
-			out_streams.get(i).writeObject(outPacket);
-		}
+		multicastMessage(outPacket);
 		
 		// lamport clock starts at player number to avoid decimals, gets incremented by 100
 		ClientManager.lamportClock = ClientManager.player_number;
+		
+		
+		// setup server socket for receiving incoming connections
+		networkReceiver = new ClientNetworkListener(mySocket, this);
+		
 		
 		// start thread for broadcasting and processing command buffer
 		active = true;
@@ -152,6 +167,14 @@ public class ClientManager implements MazeListener, Runnable{
 		thread.start();
 	}
 	
+	private void multicastMessage(MazewarPacket outPacket) {
+		// iterate throught the list of remote clients and send packet to all of them
+		int i;
+		for (i = 0; i < remoteClients.size(); i++) {
+			remoteClients.get(i).writeObject(outPacket);
+		}
+	}
+
 	public GUIClient getLocalClient() {
 		// TODO Auto-generated method stub
 		return this.guiClient;
@@ -409,6 +432,38 @@ public class ClientManager implements MazeListener, Runnable{
 				e.printStackTrace();
 			}
 		}
+	}
+
+	public void addRemoteClient(String tmpName, String tmpHostname, int tmpPort, int tmpID) {
+		// TODO Auto-generated method stub
+		
+		RemoteClient tmpClient = new RemoteClient(tmpName, tmpHostname, tmpPort, tmpID); 
+		remoteClients.add(tmpClient);
+		maze.addClient(tmpClient);
+		
+		// create output sockets for each client and send them a register packet
+		tmpClient.writeObject(outPacket);
+		
+		// wait for client to reply
+		Socket tmpSocket = mySocket.accept();
+		ObjectInputStream tmpIn = new ObjectInputStream(tmpSocket.getInputStream());
+		// configures input socket, also completes registration by
+		// waiting for incoming register packet with client position
+		tmpClient.setInSocket(tmpSocket);
+		
+		//wait for client to send us its position and score info
+		MazewarPacket packetFromRemote = (MazewarPacket)tmpIn.readObject();
+		// extract position, direction, score
+		Point tmpPos = packetFromRemote.clientPosition;
+		Direction tmpDir = packetFromRemote.clientOrientation;
+		int tmpScore = packetFromRemote.clientScore;
+		
+		maze.repositionClient(tmpClient, tmpPos, tmpDir);
+		// update the score
+		tmpClient.clientSetScore(tmpClient, tmpScore);
+		
+		// start listening for stuff to throw in the command buffer
+		tmpClient.startThread();
 	}
 	
 }
