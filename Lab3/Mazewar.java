@@ -35,6 +35,7 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -52,17 +53,17 @@ import java.util.Set;
  * @version $Id: Mazewar.java 371 2004-02-10 21:55:32Z geoffw $
  */
 
-public class Mazewar extends JFrame implements Runnable, MazeListener {
+public class Mazewar extends JFrame {
 
 	/**
 	 * The default width of the {@link Maze}.
 	 */
-	private final int mazeWidth = 20;
+	private final int mazeWidth = 5;//20;
 
 	/**
 	 * The default height of the {@link Maze}.
 	 */
-	private final int mazeHeight = 10;
+	private final int mazeHeight = 5;//10;
 
 	/**
 	 * The default random seed for the {@link Maze}. All implementations of the
@@ -70,27 +71,14 @@ public class Mazewar extends JFrame implements Runnable, MazeListener {
 	 * different.
 	 */
 	private final int mazeSeed = 42;
-
-	private final Thread thread;
-
-	private Socket serverConnection = null;
-	private ObjectOutputStream out = null;
-	private ObjectInputStream in = null;
-	private List<Client> clients = null;
-
+	
 	/**
 	 * The {@link Maze} that the game uses.
 	 */
 	private Maze maze = null;
 
-	private boolean active = false;
-	/**
-	 * The {@link GUIClient} for the game.
-	 */
-	private GUIClient guiClient = null;
-
 	private String LocalName = null;
-
+	
 	/**
 	 * The panel that displays the {@link Maze}.
 	 */
@@ -153,93 +141,41 @@ public class Mazewar extends JFrame implements Runnable, MazeListener {
 		super("ECE419 Mazewar");
 		consolePrintLn("ECE419 Mazewar started!");
 
+		// Create the maze
+		maze = new MazeImpl(new Point(mazeWidth, mazeHeight), mazeSeed);
+		assert (maze != null);
+
 		// Throw up a dialog to get the GUIClient name.
 		LocalName = JOptionPane.showInputDialog("Enter your name");
 		if ((LocalName == null) || (LocalName.length() == 0)) {
 			Mazewar.quit();
 		}
 
-		String hostname = JOptionPane.showInputDialog("Enter server location");
-		if ((hostname == null) || (hostname.length() == 0)) {
-			Mazewar.quit();
-		}
+//		String hostname = JOptionPane.showInputDialog("Enter server location");
+//		if ((hostname == null) || (hostname.length() == 0)) {
+//			Mazewar.quit();
+//		}
+//
+		String hostname = "localhost";
+		
+//		String port = JOptionPane.showInputDialog("Enter port number");
+//		if ((port == null) || (port.length() == 0)) {
+//			Mazewar.quit();
+//		}
 
-		String port = JOptionPane.showInputDialog("Enter port number");
-		if ((port == null) || (port.length() == 0)) {
-			Mazewar.quit();
-		}
-
-		// You may want to put your network initialization code somewhere in
-		// here.
-
-		// connect to server.
-		try {
-			/* variables for hostname/port */
-			// default values
-			serverConnection = new Socket(hostname, Integer.parseInt(port));
-			out = new ObjectOutputStream(serverConnection.getOutputStream());
-			in = new ObjectInputStream(serverConnection.getInputStream());
-
-		} catch (UnknownHostException e) {
-			System.err.println("ERROR: Don't know where to connect!!");
-			System.exit(1);
-		} catch (IOException e) {
-			System.err.println("ERROR: Couldn't get I/O for the connection.");
-			System.exit(1);
-		}
-
-		clients = new ArrayList<Client>();
-		guiClient = new GUIClient(LocalName, out);
-		clients.add(guiClient);
-
-		MazewarPacket packetFromServer = null;
-		ScoreTableModel scoreModel = null;
-
-		try {
-
-			// first task is to register to the server
-			MazewarPacket packetToServer = new MazewarPacket();
-			packetToServer.type = MazewarPacket.CLIENT_GETCLIENTS;
-			packetToServer.clientName = guiClient.getName();
-
-			out.writeObject(packetToServer);
-
-			packetFromServer = (MazewarPacket) in.readObject();
-			// Create the maze
-			maze = new MazeImpl(new Point(mazeWidth, mazeHeight), packetFromServer.mapSeed);
-			assert (maze != null);
-
-			// Have the ScoreTableModel listen to the maze to find
-			// out how to adjust scores.
-			scoreModel = new ScoreTableModel();
-			assert (scoreModel != null);
-			maze.addMazeListener(scoreModel);
-
-			// expect to receive existing clients one by one until null
-			// Method used to receive position, direction, and score of also
-			// existing clients
-			while (packetFromServer.type == MazewarPacket.CLIENT_GETCLIENTS) {
-				/* print server reply */
-				RemoteClient newClient = new RemoteClient(packetFromServer.clientName);
-				maze.addRemoteClient(newClient, packetFromServer.clientPosition, packetFromServer.clientOrientation);
-				clients.add(newClient);
-				newClient.clientSetScore(newClient, packetFromServer.clientScore);
-				packetFromServer = (MazewarPacket) in.readObject();
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-			System.err.println("ERROR: Couldn't get I/O for the connection.");
-			System.exit(1);
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			System.exit(1);
-		}
-
-		// cant start properly without having this initialized here
-		maze.addClient(guiClient);
-		this.addKeyListener(guiClient);
-
+		
+		
+		// initialize the client manager to set up and manage the clients
+		ClientManager clientManager = new ClientManager(maze, LocalName, hostname, port);
+		
+		GUIClient guiClient = clientManager.getLocalClient();
+		
+		// Have the ScoreTableModel listen to the maze to find
+		// out how to adjust scores.
+		ScoreTableModel scoreModel = new ScoreTableModel();
+		assert (scoreModel != null);
+		maze.addMazeListener(scoreModel);
+		
 		// Create the panel that will display the maze.
 		overheadPanel = new OverheadMazePanel(maze, guiClient);
 		assert (overheadPanel != null);
@@ -296,15 +232,7 @@ public class Mazewar extends JFrame implements Runnable, MazeListener {
 		// Let the magic begin.
 		setVisible(true);
 		overheadPanel.repaint();
-		this.requestFocusInWindow();
-
-		// listen for changes in mazelistener
-		maze.addMazeListener(this);
-
-		// start client manager thread
-		active = true;
-		thread = new Thread(this);
-		thread.start();
+		this.requestFocusInWindow();			
 	}
 
 	/**
@@ -316,207 +244,5 @@ public class Mazewar extends JFrame implements Runnable, MazeListener {
 	public static void main(String args[]) {
 		/* Create the GUI */
 		new Mazewar();
-	}
-
-	public void run() {
-		consolePrintLn("client manager is running");
-
-		// create input stream
-
-		try {
-
-			MazewarPacket packetFromServer = null;
-
-			// first task is to register to the server
-			MazewarPacket packetToServer = new MazewarPacket();
-			packetToServer.type = MazewarPacket.CLIENT_REGISTER;
-			packetToServer.clientName = guiClient.getName();
-			packetToServer.clientPosition = guiClient.getPoint();
-			packetToServer.clientOrientation = guiClient.getOrientation();
-
-			out.writeObject(packetToServer);
-
-			while (true) {
-				packetFromServer = (MazewarPacket) in.readObject();
-
-				Client target = null;
-
-				// identify the client targeted for action
-				if (packetFromServer.type != MazewarPacket.PACKET_NULL) {
-					int i;
-					for (i = 0; i < clients.size(); i++) {
-
-						if (clients.get(i).getName().equals(packetFromServer.clientName)) {
-							target = clients.get(i);
-							break;
-						}
-					}
-
-				}
-
-				assert (target != null);
-
-				// add new clients as they register and join
-				if ((packetFromServer.type == MazewarPacket.CLIENT_REGISTER) && !(packetFromServer.clientName.equals(guiClient.getName()))) {
-					RemoteClient newClient = new RemoteClient(packetFromServer.clientName);
-					maze.addRemoteClient(newClient, packetFromServer.clientPosition, packetFromServer.clientOrientation);
-					clients.add(newClient);
-				} else if (packetFromServer.type == MazewarPacket.CLIENT_BYE) {
-					if (packetFromServer.clientName.equals(guiClient.getName())) {
-						active = false;
-						out.close();
-						in.close();
-						serverConnection.close();
-						System.out.println("Client is exiting.");
-						quit();
-					} else {
-						maze.removeClient(target);
-						clients.remove(target);
-					}
-				}
-
-				if (packetFromServer.type == MazewarPacket.CLIENT_FORWARD) {
-					target.forward();
-				} else if (packetFromServer.type == MazewarPacket.CLIENT_REVERSE) {
-					target.backup();
-				} else if (packetFromServer.type == MazewarPacket.CLIENT_LEFT) {
-					target.turnLeft();
-					if (!target.getOrientation().toString().equals(packetFromServer.clientOrientation.toString())) {
-						maze.repositionClient(target, target.getPoint(), packetFromServer.clientOrientation);
-					}
-				} else if (packetFromServer.type == MazewarPacket.CLIENT_RIGHT) {
-					target.turnRight();
-
-					if (!target.getOrientation().toString().equals(packetFromServer.clientOrientation.toString())) {
-						maze.repositionClient(target, target.getPoint(), packetFromServer.clientOrientation);
-					}
-				}
-
-				if (packetFromServer.type == MazewarPacket.CLIENT_FIRE) {
-					target.fire();
-				} else if (packetFromServer.type == MazewarPacket.CLIENT_KILLED) {
-					Client source = null;
-					// search for source client
-					int i;
-					for (i = 0; i < clients.size(); i++) {
-						if (clients.get(i).getName().equals(packetFromServer.sourceName)) {
-							source = clients.get(i);
-						}
-					}
-
-					assert (source != null);
-					assert (target != null);
-
-					// if this is being received by someone other than the
-					// client that died, need to update position of client that
-					// died
-					if (!target.getName().equals(guiClient.getName())) {
-						
-						Mazewar.consolePrintLn(source.getName() + " just vaporized " + target.getName());
-						boolean needtoupdate = maze.repositionClient(target, packetFromServer.clientPosition, packetFromServer.clientOrientation);
-						// notify everybody that the kill happened
-						if (needtoupdate) {
-							packetToServer = new MazewarPacket();
-							packetToServer.type = MazewarPacket.CLIENT_UPDATEPOS;
-							packetToServer.clientName = target.getName();
-							packetToServer.clientPosition = target.getPoint();
-							packetToServer.clientOrientation = target.getOrientation();
-							out.writeObject(packetToServer);
-						}
-						maze.notifyKill(source, target);
-					} else {
-						updateScore(guiClient, guiClient.getClientScore(guiClient));
-						updateScore(source, source.getClientScore(source));
-					}
-
-				} else if (packetFromServer.type == MazewarPacket.CLIENT_SCORE_UPDATE) {
-					maze.notifyClientFiredPublic(target);
-					updateScore(target, target.getClientScore(target));
-				} else if (packetFromServer.type == MazewarPacket.CLIENT_UPDATEPOS) {
-					boolean needtoupdate = maze.repositionClient(target, packetFromServer.clientPosition, packetFromServer.clientOrientation);
-					// notify everybody that the kill happened
-					if (needtoupdate) {
-						packetToServer = new MazewarPacket();
-						packetToServer.type = MazewarPacket.CLIENT_UPDATEPOS;
-						packetToServer.clientName = target.getName();
-						packetToServer.clientPosition = target.getPoint();
-						packetToServer.clientOrientation = target.getOrientation();
-						out.writeObject(packetToServer);
-					}
-				}
-					
-			}
-		} catch (IOException e) {
-			System.err.println("ERROR: Lost connection to server.");
-			System.exit(1);
-
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			System.exit(1);
-		}
-
-	}
-
-	public void updateScore(Client c, int score) {
-		MazewarPacket scoreToServer = new MazewarPacket();
-		scoreToServer.clientName = c.getName();
-		scoreToServer.clientScore = score;
-		scoreToServer.type = MazewarPacket.CLIENT_SCORE_SEND;
-		synchronized (out) {
-			try {
-				out.writeObject(scoreToServer);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-	}
-
-	public void clientKilled(Client source, Client target) {
-		if (target.getName().equals(guiClient.getName())) {
-			try {
-				MazewarPacket packetToServer = new MazewarPacket();
-				packetToServer.type = MazewarPacket.CLIENT_KILLED;
-				packetToServer.clientName = target.getName();
-				packetToServer.sourceName = source.getName();
-				packetToServer.clientPosition = guiClient.getPoint();
-				packetToServer.clientOrientation = guiClient.getOrientation();
-				maze.repositionClient(target, packetToServer.clientPosition, packetToServer.clientOrientation);
-
-				synchronized (out) {
-					out.writeObject(packetToServer);
-				}
-
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-
-	}
-
-	@Override
-	public void mazeUpdate() {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void clientAdded(Client client) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void clientFired(Client client) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void clientRemoved(Client client) {
-		// TODO Auto-generated method stub
-
 	}
 }

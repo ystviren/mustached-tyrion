@@ -20,6 +20,7 @@ USA.
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -31,6 +32,8 @@ import java.util.Iterator;
  */
 public abstract class Client {
 		
+		protected static List<MazewarPacket> command_buffer;
+	
         /**
          * Register this {@link Client} as being contained by the specified
          * {@link Maze}.  Naturally a {@link Client} cannot be registered with
