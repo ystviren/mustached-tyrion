@@ -53,17 +53,18 @@ public class MazewarPacket implements Serializable {
 		
 	// notifty a client that it was hit
 	public static final int CLIENT_KILLED 	= 301;
-		
+	
+	// Server Reply
+	public static final int NAME_SERVER_REPLY = 501;
+	public static final int NAME_SERVER_BYE = 502;
+	public static final int CLIENT_LOOKUP_REGISTER = 503;
+	
 	/* error codes */
 	//there shouldnt be any invalid packets unless some special cases occur
 	
 	/* message header */
 	public int type = MazewarPacket.PACKET_NULL;
 	
-	public String clientName; // name of the client that sent the packet
-	public String clientHostname; 
-	public int clientPort;
-	public int clientID;
 	public Point clientPosition;
 	public Direction clientOrientation;
 	public int clientScore;
@@ -71,6 +72,9 @@ public class MazewarPacket implements Serializable {
 	public String sourceName; // second client name for certain actions
 	
 	public int mapSeed;
+	
+	//  make client hold its own Info
+	public ClientInfo myInfo = null;
 	
 	List<ClientInfo> remoteList = null;
 	

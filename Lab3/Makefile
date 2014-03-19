@@ -5,7 +5,7 @@
 # The jikes is *way* faster if you have it.
 #JAVAC=${JIKES}
 # Otherwise use Sun's compiler.
-JAVA_HOME=/cad2/ece419s/java/jdk1.6.0/
+#JAVA_HOME=/cad2/ece419s/java/jdk1.6.0/
 JAVAC=${JAVA_HOME}/bin/javac -source 1.6
 JAVADOC=${JAVA_HOME}/bin/javadoc -use -source 1.6 -author -version -link http://java.sun.com/j2se/1.6.0/docs/api/ 
 MKDIR=mkdir
