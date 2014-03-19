@@ -323,19 +323,26 @@ public class MazeImpl extends Maze implements Serializable, ClientListener, Runn
 				// notifyClientFired(client);
 				if (client.getClass().equals(GUIClient.class)) {
 					GUIClient tmp = (GUIClient) client;
-					synchronized (tmp.out) {
-						MazewarPacket packetToServer = new MazewarPacket();
-						packetToServer.type = MazewarPacket.CLIENT_SCORE_UPDATE;
-						packetToServer.clientName = tmp.getName();
-						packetToServer.sourceName = tmp.getName();
-						packetToServer.clientPosition = tmp.getPoint();
-						packetToServer.clientOrientation = tmp.getOrientation();
+						MazewarPacket packetToMulticast = new MazewarPacket();
+						packetToMulticast.type = MazewarPacket.CLIENT_SCORE_UPDATE;
+						packetToMulticast.clientName = tmp.getName();
+						packetToMulticast.sourceName = tmp.getName();
+						packetToMulticast.clientPosition = tmp.getPoint();
+						packetToMulticast.clientOrientation = tmp.getOrientation();
 						try {
-							tmp.out.writeObject(packetToServer);
+							for (ObjectOutputStream out : tmp.out) {
+								synchronized (out) {
+									out.writeObject(packetToMulticast);
+								}
+							}
+							synchronized (Client.queue) {
+								tmp.addSorted(packetToMulticast.event);
+							}
+							
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
-						}
+						
 					}
 				}
 				killClient(client, (Client) contents);
@@ -356,14 +363,21 @@ public class MazeImpl extends Maze implements Serializable, ClientListener, Runn
 		if (client.getClass().equals(GUIClient.class)) {
 			GUIClient tmp = (GUIClient) client;
 			synchronized (tmp.out) {
-				MazewarPacket packetToServer = new MazewarPacket();
-				packetToServer.type = MazewarPacket.CLIENT_SCORE_UPDATE;
-				packetToServer.clientName = tmp.getName();
-				packetToServer.sourceName = tmp.getName();
-				packetToServer.clientPosition = tmp.getPoint();
-				packetToServer.clientOrientation = tmp.getOrientation();
+				MazewarPacket packetToMulticast = new MazewarPacket();
+				packetToMulticast.type = MazewarPacket.CLIENT_SCORE_UPDATE;
+				packetToMulticast.clientName = tmp.getName();
+				packetToMulticast.sourceName = tmp.getName();
+				packetToMulticast.clientPosition = tmp.getPoint();
+				packetToMulticast.clientOrientation = tmp.getOrientation();
 				try {
-					tmp.out.writeObject(packetToServer);
+					for (ObjectOutputStream out : tmp.out) {
+						synchronized (out) {
+							out.writeObject(packetToMulticast);
+						}
+					}
+					synchronized (Client.queue) {
+						tmp.addSorted(packetToMulticast.event);
+					}
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
