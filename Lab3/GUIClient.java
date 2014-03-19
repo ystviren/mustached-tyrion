@@ -38,7 +38,7 @@ import java.util.List;
 public class GUIClient extends LocalClient implements KeyListener, MazeListener {
 	List<ObjectOutputStream> out = null;
 	int pID;
-	
+
 	/**
 	 * Create a GUI controlled {@link LocalClient}.
 	 */
@@ -47,14 +47,14 @@ public class GUIClient extends LocalClient implements KeyListener, MazeListener 
 		this.out = new ArrayList<ObjectOutputStream>();
 		this.out.add(out);
 		this.pID = pID;
-		
+
 	}
-	
-	public void addClient(ObjectOutputStream out){
+
+	public void addClient(ObjectOutputStream out) {
 		this.out.add(out);
 	}
-	
-	public int getLamport(){
+
+	public int getLamport() {
 		return 0;
 	}
 
@@ -69,65 +69,72 @@ public class GUIClient extends LocalClient implements KeyListener, MazeListener 
 
 		MazewarPacket packetToMulticast = null;
 
-
 		// If the user pressed Q, invoke the cleanup code and quit.
 		if ((e.getKeyChar() == 'q') || (e.getKeyChar() == 'Q')) {
 			// Mazewar.quit();
 			packetToMulticast = new MazewarPacket();
-			packetToMulticast.event = new Event(pID, getLamport(), MazewarPacket.CLIENT_BYE);
+			packetToMulticast.event = new Event(pID, getLamport(),
+					MazewarPacket.CLIENT_BYE);
 			packetToMulticast.type = MazewarPacket.NEW_EVENT;
 			packetToMulticast.clientName = getName();
 			packetToMulticast.clientPosition = getPoint();
 			packetToMulticast.clientOrientation = getOrientation();
-			
+
 			// Up-arrow moves forward.
 		} else if (e.getKeyCode() == KeyEvent.VK_UP) {
-			//forward();
+			// forward();
 			packetToMulticast = new MazewarPacket();
-			packetToMulticast.event = new Event(pID, getLamport(), MazewarPacket.CLIENT_FORWARD);
+			packetToMulticast.event = new Event(pID, getLamport(),
+					MazewarPacket.CLIENT_FORWARD);
 			packetToMulticast.type = MazewarPacket.NEW_EVENT;
 			packetToMulticast.clientName = getName();
 			packetToMulticast.clientPosition = getPoint();
 			packetToMulticast.clientOrientation = getOrientation();
 			if (maze.checkMoveClientForward(this)) {
-				packetToMulticast.clientPosition = packetToMulticast.clientPosition.move(getOrientation());
+				packetToMulticast.clientPosition = packetToMulticast.clientPosition
+						.move(getOrientation());
 			}
 			// Down-arrow moves backward.
 		} else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-			//backup();
+			// backup();
 			packetToMulticast = new MazewarPacket();
-			packetToMulticast.event = new Event(pID, getLamport(), MazewarPacket.CLIENT_REVERSE);
+			packetToMulticast.event = new Event(pID, getLamport(),
+					MazewarPacket.CLIENT_REVERSE);
 			packetToMulticast.type = MazewarPacket.NEW_EVENT;
 			packetToMulticast.clientName = getName();
 			packetToMulticast.clientPosition = getPoint();
 			packetToMulticast.clientOrientation = getOrientation();
 			if (maze.checkMoveClientBackward(this)) {
-				packetToMulticast.clientPosition = packetToMulticast.clientPosition.move(getOrientation().invert());
+				packetToMulticast.clientPosition = packetToMulticast.clientPosition
+						.move(getOrientation().invert());
 			}
 			// Left-arrow turns left.
 		} else if (e.getKeyCode() == KeyEvent.VK_LEFT) {
-			//turnLeft();
+			// turnLeft();
 			packetToMulticast = new MazewarPacket();
-			packetToMulticast.event = new Event(pID, getLamport(), MazewarPacket.CLIENT_LEFT);
+			packetToMulticast.event = new Event(pID, getLamport(),
+					MazewarPacket.CLIENT_LEFT);
 			packetToMulticast.type = MazewarPacket.NEW_EVENT;
 			packetToMulticast.clientName = getName();
 			packetToMulticast.clientPosition = getPoint();
 			packetToMulticast.clientOrientation = getOrientation().turnLeft();
-			
+
 			// Right-arrow turns right.
 		} else if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
-			//turnRight();
+			// turnRight();
 			packetToMulticast = new MazewarPacket();
-			packetToMulticast.event = new Event(pID, getLamport(), MazewarPacket.CLIENT_RIGHT);
+			packetToMulticast.event = new Event(pID, getLamport(),
+					MazewarPacket.CLIENT_RIGHT);
 			packetToMulticast.type = MazewarPacket.NEW_EVENT;
 			packetToMulticast.clientName = getName();
 			packetToMulticast.clientPosition = getPoint();
 			packetToMulticast.clientOrientation = getOrientation().turnRight();
 			// Spacebar fires.
 		} else if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-			//fire();
+			// fire();
 			packetToMulticast = new MazewarPacket();
-			packetToMulticast.event = new Event(pID, getLamport(), MazewarPacket.CLIENT_FIRE);
+			packetToMulticast.event = new Event(pID, getLamport(),
+					MazewarPacket.CLIENT_FIRE);
 			packetToMulticast.type = MazewarPacket.NEW_EVENT;
 			packetToMulticast.clientName = getName();
 			packetToMulticast.clientPosition = getPoint();
@@ -136,12 +143,14 @@ public class GUIClient extends LocalClient implements KeyListener, MazeListener 
 
 		try {
 			if (packetToMulticast != null) {
-				for (ObjectOutputStream out : this.out){
-					synchronized (out){
+				for (ObjectOutputStream out : this.out) {
+					synchronized (out) {
 						out.writeObject(packetToMulticast);
 					}
 				}
-				addSorted(packetToMulticast.event);
+				synchronized (queue) {
+					addSorted(packetToMulticast.event);
+				}
 			}
 
 		} catch (IOException e1) {
@@ -172,60 +181,63 @@ public class GUIClient extends LocalClient implements KeyListener, MazeListener 
 	@Override
 	public void mazeUpdate() {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void clientKilled(Client source, Client target) {
 		// TODO Auto-generated method stub
 		// TODO Auto-generated method stub
-		
-		//ObjectOutputStream out = null;
-		if (target.getName().equals(guiClient.getName()) ) {
+
+		// ObjectOutputStream out = null;
+		if (target.getName().equals(getName())) {
 			try {
 				System.out.println("I died");
-	
-				MazewarPacket packetToServer = new MazewarPacket();
-				packetToServer.type = MazewarPacket.CLIENT_KILLED;
-				packetToServer.clientName = target.getName();
-				packetToServer.sourceName = source.getName();
-				packetToServer.clientPosition = guiClient.getPoint();
-				packetToServer.clientOrientation = guiClient.getOrientation();
-				System.out.println("reposition: " + packetToServer.clientOrientation.toString());
-				
-				synchronized(out){
-				out.writeObject(packetToServer);
+
+				MazewarPacket packetToMulticast = new MazewarPacket();
+				packetToMulticast.type = MazewarPacket.CLIENT_KILLED;
+				packetToMulticast.clientName = target.getName();
+				packetToMulticast.sourceName = source.getName();
+				packetToMulticast.clientPosition = getPoint();
+				packetToMulticast.clientOrientation = getOrientation();
+				System.out.println("reposition: "
+						+ packetToMulticast.clientOrientation.toString());
+
+				for (ObjectOutputStream out : this.out) {
+					synchronized (out) {
+						out.writeObject(packetToMulticast);
+					}
 				}
-				//updateScore(source, source.getClientScore(source));
-				//updateScore(target, target.getClientScore(target));
-				
-	
+				synchronized (queue) {
+					addSorted(packetToMulticast.event);
+				}
+				// updateScore(source, source.getClientScore(source));
+				// updateScore(target, target.getClientScore(target));
+
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
-		
+
 	}
 
 	@Override
 	public void clientAdded(Client client) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void clientFired(Client client) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void clientRemoved(Client client) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
-	
-	
 }
