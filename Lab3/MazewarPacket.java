@@ -19,6 +19,27 @@ class ClientInfo implements Serializable {
 	}
 }
 
+class Event implements Serializable{
+	public int action;
+	public int initTime;
+	public int timeDeliver;
+	public boolean deliverable;
+	public int pID;
+	
+	public Event(int pID, int timeSent, int action){
+		this.action = action;
+		this.pID = pID;
+		this.deliverable = false;
+		this.initTime = timeSent;
+		this.timeDeliver = timeSent;
+	}
+	
+	public void setDeliverable(int deliverTime){
+		this.deliverable = true;
+		this.timeDeliver = deliverTime;
+	}
+}
+
 public class MazewarPacket implements Serializable {
 
 	/* define constants */
@@ -77,5 +98,13 @@ public class MazewarPacket implements Serializable {
 	public ClientInfo myInfo = null;
 	
 	List<ClientInfo> remoteList = null;
+	
+	
+	// event packet
+	public Event event;
+	
+	public static int NEW_EVENT = 601;
+	public static int CONFIRM_EVENT = 602;
+	public static int DELIVER_EVENT = 603;
 	
 }
