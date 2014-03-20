@@ -148,6 +148,9 @@ public class GUIClient extends LocalClient implements KeyListener, MazeListener 
 					}
 				}
 				synchronized (queue) {
+					if (Client.playerCount == 1){
+						packetToMulticast.event.deliverable = true;
+					}
 					addSorted(packetToMulticast.event);
 				}
 			}
