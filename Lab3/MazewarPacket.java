@@ -19,33 +19,6 @@ class ClientInfo implements Serializable {
 	}
 }
 
-class Event implements Serializable{
-	public int action;
-	public int initTime;
-	public int timeDeliver;
-	public boolean deliverable;
-	public int pID;
-	public int pID2;
-	public int count;
-	public Point location;
-	public Direction orientation;
-	
-	public Event(int pID, int timeSent, int action){
-		this.action = action;
-		this.pID = pID;
-		this.deliverable = false;
-		this.initTime = timeSent;
-		this.timeDeliver = timeSent;
-		this.count = 0;
-	}
-	
-	public void setDeliverable(int deliverTime){
-		this.deliverable = true;
-		this.timeDeliver = deliverTime;
-	}
-	
-}
-
 public class MazewarPacket implements Serializable {
 
 	/* define constants */
@@ -110,9 +83,8 @@ public class MazewarPacket implements Serializable {
 	
 	// event packet
 	public Event event;
+	public List<Event> eventQueue;
 	
-	public static int NEW_EVENT = 601;
-	public static int CONFIRM_EVENT = 602;
-	public static int DELIVER_EVENT = 603;
+	public static int RING_TOKEN = 601;
 	
 }

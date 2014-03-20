@@ -200,6 +200,7 @@ public class ClientManager implements MazeListener, Runnable{
 		networkReceiver = new ClientNetworkListener(mySocket, this);		
 		
 		// start thread for broadcasting and processing command buffer
+		System.out.println("Do I get here?");
 		active = true;
 		thread = new Thread(this);
 		thread.start();
@@ -255,15 +256,16 @@ public class ClientManager implements MazeListener, Runnable{
 		while (active) {
 			// commit actions that are deliverable
 			Event newEvent = null;
-			if (Client.queue.size() > 0 ) {
-				newEvent = Client.queue.get(0);
+			synchronized(Client.localQueue){
+			if (Client.localQueue.size() > 0 ) {
+				newEvent = Client.localQueue.get(0);
 			} else {
 				continue;
 			}
 			
-			if (newEvent.deliverable) {
+			if (true) {
 				// now we can remove it from the queue
-				Client.queue.remove(0);
+				Client.localQueue.remove(0);
 				
 				// parse the contents and commit them
 				/** deliver a command **/		
@@ -275,7 +277,7 @@ public class ClientManager implements MazeListener, Runnable{
 //				public int count;
 					
 				//identify the client targeted for action
-				Client target = getClient(newEvent.pID);
+				Client target = getClient(newEvent.source);
 				
 				assert(target != null);
 				
@@ -330,6 +332,7 @@ public class ClientManager implements MazeListener, Runnable{
 //					System.out.println(target.getClientScore(target));
 //				}
 
+			}
 			}
 		} // end of while loop
 	} // end of run function
