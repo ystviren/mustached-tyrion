@@ -36,10 +36,10 @@ public abstract class Client {
 	
 		public static int lamportClock = 0;
 		public static List<Event> queue = new ArrayList<Event>();
+		public static int playerCount = 0;
 		
 		
-		
-		public void addSorted(Event event){
+		public static void addSorted(Event event){
 			if (queue.size() == 0){
 				queue.add(event);
 			}
@@ -57,7 +57,7 @@ public abstract class Client {
 			
 		}
 		
-		public void updateAndSort(Event event){
+		public static void updateAndSort(Event event){
 			for (Event queueEvent: queue){
 				if (queueEvent.initTime == event.initTime){
 					queue.remove(queueEvent);
@@ -85,6 +85,7 @@ public abstract class Client {
                 if (lamportClock == 0){
                 	lamportClock = pID;
                 }
+                Client.playerCount++;
         }
 		
         /**
