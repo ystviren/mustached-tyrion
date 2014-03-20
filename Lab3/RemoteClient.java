@@ -98,25 +98,25 @@ public class RemoteClient extends Client implements Runnable{
 
 			MazewarPacket remotePacket = null;
 			
-			while ((remotePacket = (MazewarPacket)remoteIn.readObject()) != null) {
+			while ((remotePacket = (MazewarPacket)myIn.readObject()) != null) {
 				//System.out.println("Recieved Packet " + packetFromClient.type);
 				
 				/** process message **/		
 				
 				// take whatever packet we received and throw it into the buffer. Need to keep it sorted by timestamps
-				synchronized (Client.command_buffer) {
+				synchronized (Client.queue) {
 					int i = 0;
-					int currentSize = Client.command_buffer.size();
+					int currentSize = Client.queue.size();
 					// since we want to keep the buffer always sorted by timestamps, we need to insert to maintain sort
 					for (i = 0; i < currentSize; i++) {
-						if (Client.command_buffer.get(i).lamportClock > remotePacket.lamportClock) {
-							Client.command_buffer.add(i, remotePacket);
+						if (Client.queue.get(i).lamportClock > remotePacket.lamportClock) {
+							Client.queue.add(i, remotePacket);
 						}
 					}
 					
 					// handle case where we have to insert at the end
-					if (currentSize == Client.command_buffer.size()) {
-						Client.command_buffer.add(remotePacket);
+					if (currentSize == Client.queue.size()) {
+						Client.queue.add(remotePacket);
 					}
 				}
 				
@@ -164,5 +164,11 @@ public class RemoteClient extends Client implements Runnable{
 		}
 		
 		return ret;
+	}
+
+
+	public ObjectOutputStream getOutStream() {
+		// TODO Auto-generated method stub
+		return myOut;
 	}
 }

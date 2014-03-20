@@ -42,10 +42,9 @@ public class GUIClient extends LocalClient implements KeyListener, MazeListener 
 	/**
 	 * Create a GUI controlled {@link LocalClient}.
 	 */
-	public GUIClient(String name, int pID, ObjectOutputStream out) {
+	public GUIClient(String name, int pID) {
 		super(name, pID);
 		this.out = new ArrayList<ObjectOutputStream>();
-		this.out.add(out);
 		this.pID = pID;
 
 	}

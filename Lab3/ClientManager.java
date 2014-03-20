@@ -12,19 +12,12 @@ import java.util.List;
 public class ClientManager implements MazeListener, Runnable{
 	
 	private ServerSocket mySocket = null;
-	//private List<Socket> clientSockets = null;
 	private List<RemoteClient> remoteClients = null;
-	//private int supported_ports[] = {4444,4445,4446,4447};
-
-	private static List<ObjectInputStream> in_streams = null;
-	private static List<ObjectOutputStream> out_streams = null;
 	
 	/**
 	 * The {@link GUIClient} for the game.
 	 */
 	private GUIClient guiClient = null;
-	
-	private List<Client> list_clients = null;
 	
 	private Maze maze = null;
 	
@@ -37,9 +30,6 @@ public class ClientManager implements MazeListener, Runnable{
 	
 	private final Thread thread;
 	private boolean active = false;
-	
-	private static List<MazewarPacket> command_buffer = null;
-	private static int lamportClock = 0;
 	
 	private ClientNetworkListener networkReceiver = null;
 	
@@ -104,6 +94,16 @@ public class ClientManager implements MazeListener, Runnable{
 		}
 		
 		// TODO: SEND BYE PACKET TO NAME SERVER
+		outPacket = new MazewarPacket();
+		outPacket.type = MazewarPacket.CLIENT_BYE;
+		// TODO: change this to use a packet object
+		outPacket.myInfo = new ClientInfo(ClientManager.player_name, local_hostname, local_port, 0);
+		try {
+			lookupOut.writeObject(outPacket);
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		
 		// dont need to talk to the lookup server anymore
 		try {
@@ -120,8 +120,9 @@ public class ClientManager implements MazeListener, Runnable{
 		/** Use the list to generate required connections **/
 		
 		// look for our player number
-		player_number = inPacket.myInfo.clientID;
+		ClientManager.player_number = inPacket.myInfo.clientID;
 		// TODO: check the contents of the packet
+		guiClient = new GUIClient(LocalName, ClientManager.player_number);
 		
 		/** step 3 **/
 		// iterate through the list the name server gave us and set up remote clients
@@ -130,6 +131,11 @@ public class ClientManager implements MazeListener, Runnable{
 		int tmpPort = 0;
 		int tmpID = 0;
 		
+		outPacket = new MazewarPacket();
+		outPacket.type = MazewarPacket.CLIENT_REGISTER;
+		// TODO: change this to use a packet object
+		outPacket.myInfo = new ClientInfo(ClientManager.player_name, local_hostname, local_port, 0);
+		
 		int i;
 		for (i = 0; i < inPacket.remoteList.size(); i++) {
 			tmpName = inPacket.remoteList.get(i).clientName;
@@ -137,7 +143,8 @@ public class ClientManager implements MazeListener, Runnable{
 			tmpPort = inPacket.remoteList.get(i).clientPort;
 			tmpID = inPacket.remoteList.get(i).clientID;
 			
-			RemoteClient tmpClient = new RemoteClient(tmpName, tmpHostname, tmpPort, tmpID); 
+			RemoteClient tmpClient = new RemoteClient(tmpName, tmpHostname, tmpPort, tmpID);
+			guiClient.addClient(tmpClient.getOutStream());
 			remoteClients.add(tmpClient);
 			maze.addClient(tmpClient);
 			
@@ -174,7 +181,7 @@ public class ClientManager implements MazeListener, Runnable{
 		// at this point we should have all the remote clients placed and scores up to date
 		// now we can place ourselves on the map
 		
-		guiClient = new GUIClient(LocalName);
+		
 		maze.addClient(guiClient);
 		// gui client listens for its own death
 		maze.addMazeListener(guiClient);
