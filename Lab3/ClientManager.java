@@ -192,6 +192,7 @@ public class ClientManager implements MazeListener, Runnable{
 		networkReceiver = new ClientNetworkListener(mySocket, this);		
 		
 		// start thread for broadcasting and processing command buffer
+		System.out.println("Do I get here?");
 		active = true;
 		thread = new Thread(this);
 		thread.start();
@@ -255,79 +256,130 @@ public class ClientManager implements MazeListener, Runnable{
 				
 				// process the stuff in the queue
 				int i;
-				for(i = 0; i < Client.queue.size();i++)
-				
-					newEvent = Client.queue.get(i);
-					// process queue			
+				for(i = 0; i < Client.queue.size();i++){
+
+					// commit actions that are deliverable
+					Event newEvent = null;
+					synchronized(Client.localQueue){
+					if (Client.localQueue.size() > 0 ) {
+						newEvent = Client.localQueue.get(0);
+					} else {
+						continue;
+					}
+					
+					if (true) {
+						// now we can remove it from the queue
+						Client.localQueue.remove(0);
+						
+						// parse the contents and commit them
+						/** deliver a command **/		
+		//				public int action;
+		//				public int initTime;
+		//				public int timeDeliver;
+		//				public boolean deliverable;
+		//				public int pID;
+		//				public int count;
+							
+						//identify the client targeted for action
+						Client target = getClient(newEvent.source);
+						
+						assert(target != null);
+						
+						if (newEvent.action == MazewarPacket.CLIENT_REMOVE) {
+		//					maze.removeClient(target);
+		//					clients.remove(target);
+						}
 									
-					// parse the contents and commit them
-					/** deliver a command **/		
-	//				public int action;
-	//				public int initTime;
-	//				public int timeDeliver;
-	//				public boolean deliverable;
-	//				public int pID;
-	//				public int count;
+						if (newEvent.action == MazewarPacket.CLIENT_FORWARD) {
+							//System.out.println("forward");
+							target.forward();
+						} 
+						else if (newEvent.action == MazewarPacket.CLIENT_REVERSE) {
+							//System.out.println("back");
+							target.backup();
+						}
+						else if (newEvent.action == MazewarPacket.CLIENT_LEFT) {
+							//System.out.println("left");
+							target.turnLeft();
+						}
+						else if (newEvent.action == MazewarPacket.CLIENT_RIGHT) {
+							//System.out.println("right");
+							target.turnRight();
+						}
 						
-					//identify the client targeted for action
-					Client target = getClient(newEvent.pID);
-					
-					assert(target != null);
-					
-					if (newEvent.action == MazewarPacket.CLIENT_REMOVE) {
-	//					maze.removeClient(target);
-	//					clients.remove(target);
-					}
+							newEvent = Client.queue.get(i);
+							// process queue			
+											
+							// parse the contents and commit them
+							/** deliver a command **/		
+			//				public int action;
+			//				public int initTime;
+			//				public int timeDeliver;
+			//				public boolean deliverable;
+			//				public int pID;
+			//				public int count;
 								
-					if (newEvent.action == MazewarPacket.CLIENT_FORWARD) {
-						//System.out.println("forward");
-						target.forward();
-					} 
-					else if (newEvent.action == MazewarPacket.CLIENT_REVERSE) {
-						//System.out.println("back");
-						target.backup();
-					}
-					else if (newEvent.action == MazewarPacket.CLIENT_LEFT) {
-						//System.out.println("left");
-						target.turnLeft();
-					}
-					else if (newEvent.action == MazewarPacket.CLIENT_RIGHT) {
-						//System.out.println("right");
-						target.turnRight();
-					}
-					
-					if (newEvent.action == MazewarPacket.CLIENT_FIRE) {
-						//target.fire();
-					}
-					else if (newEvent.action == MazewarPacket.CLIENT_KILLED) {
-						//System.out.println("processing client death");
-						Client source = getClient(newEvent.pID2);
-						
-						assert(source != null);
-	
-		                //if this is being received by someone other than the client that died, need to update position of client that died
-		                if (!target.getName().equals(guiClient.getName())) {
-		                	Mazewar.consolePrintLn(source.getName() + " just vaporized " + target.getName());
-		                	//System.out.println("reposition: " + packetFromServer.clientOrientation.toString());
-		                	maze.repositionClient(target, newEvent.location, newEvent.orientation);
-		                	// notify everybody that the kill happened
-			                maze.notifyKill(source, target);
-		                }
-	//	                else{
-	//	                	updateScore(guiClient, guiClient.getClientScore(guiClient));
-	//	                	updateScore(source, source.getClientScore(source));
-	//	                }	                
-		                
-					}
-	//				else if (newEvent.action == MazewarPacket.CLIENT_SCORE_UPDATE){
-	//					maze.notifyClientFiredPublic(target);
-	//					updateScore(target, target.getClientScore(target));
-	//					System.out.println(target.getClientScore(target));
-	//				}
-	
+							//identify the client targeted for action
+							Client target = getClient(newEvent.pID);
+							
+							assert(target != null);
+							
+							if (newEvent.action == MazewarPacket.CLIENT_REMOVE) {
+			//					maze.removeClient(target);
+			//					clients.remove(target);
+							}
+										
+							if (newEvent.action == MazewarPacket.CLIENT_FORWARD) {
+								//System.out.println("forward");
+								target.forward();
+							} 
+							else if (newEvent.action == MazewarPacket.CLIENT_REVERSE) {
+								//System.out.println("back");
+								target.backup();
+							}
+							else if (newEvent.action == MazewarPacket.CLIENT_LEFT) {
+								//System.out.println("left");
+								target.turnLeft();
+							}
+							else if (newEvent.action == MazewarPacket.CLIENT_RIGHT) {
+								//System.out.println("right");
+								target.turnRight();
+							}
+							
+							if (newEvent.action == MazewarPacket.CLIENT_FIRE) {
+								//target.fire();
+							}
+							else if (newEvent.action == MazewarPacket.CLIENT_KILLED) {
+								//System.out.println("processing client death");
+								Client source = getClient(newEvent.pID2);
+								
+								assert(source != null);
+			
+				                //if this is being received by someone other than the client that died, need to update position of client that died
+				                if (!target.getName().equals(guiClient.getName())) {
+				                	Mazewar.consolePrintLn(source.getName() + " just vaporized " + target.getName());
+				                	//System.out.println("reposition: " + packetFromServer.clientOrientation.toString());
+				                	maze.repositionClient(target, newEvent.location, newEvent.orientation);
+				                	// notify everybody that the kill happened
+					                maze.notifyKill(source, target);
+				                }
+			//	                else{
+			//	                	updateScore(guiClient, guiClient.getClientScore(guiClient));
+			//	                	updateScore(source, source.getClientScore(source));
+			//	                }	                
+				                
+							}
+			//				else if (newEvent.action == MazewarPacket.CLIENT_SCORE_UPDATE){
+			//					maze.notifyClientFiredPublic(target);
+			//					updateScore(target, target.getClientScore(target));
+			//					System.out.println(target.getClientScore(target));
+			//				}
+			
+						}
+					} //if haveToken
 				}
-			} //if haveToken			
-		} // end of while loop
+			} 
+		}// end of while loop
 	} // end of run function
 
 

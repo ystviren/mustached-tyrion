@@ -101,30 +101,26 @@ public class RemoteClient extends Client implements Runnable{
 			while ((remotePacket = (MazewarPacket)myIn.readObject()) != null) {
 				//System.out.println("Recieved Packet " + packetFromClient.type);
 				
-				/** process message **/		
+				/** process message **/
 				
-				// take whatever packet we received and throw it into the buffer. Need to keep it sorted by timestamps
-				synchronized (Client.queue) {
-					int i = 0;
-					int currentSize = Client.queue.size();
-					// since we want to keep the buffer always sorted by timestamps, we need to insert to maintain sort
-					for (i = 0; i < currentSize; i++) {
-						if (Client.queue.get(i).lamportClock > remotePacket.lamportClock) {
-							Client.queue.add(i, remotePacket);
-						}
+				if (remotePacket.type == MazewarPacket.RING_TOKEN){
+					//TODO tell client manager that it can run event?
+					synchronized (Client.actionQueue){
+						Client.actionQueue.addAll(remotePacket.eventQueue);
+						//Set execution flag
 					}
+				}else if (remotePacket.type == MazewarPacket.CLIENT_REGISTER){
+					//TODO player join logic
+				}else if (remotePacket.type == MazewarPacket.CLIENT_BYE){
+					//TODO change connection to maintain ring
+				}else{
+					System.out.println("Unknown packet type" + remotePacket.type);
 					
-					// handle case where we have to insert at the end
-					if (currentSize == Client.queue.size()) {
-						Client.queue.add(remotePacket);
-					}
 				}
-				
-				
+						
 				/* quit case */
 				if (remotePacket.type == MazewarPacket.PACKET_NULL || remotePacket.type == MazewarPacket.CLIENT_BYE) {
 					gotByePacket = true;
-					
 					break;
 				}
 			}

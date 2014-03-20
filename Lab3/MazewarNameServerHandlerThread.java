@@ -48,8 +48,8 @@ public class MazewarNameServerHandlerThread extends Thread {
 				
 				if (packetFromClient.type == MazewarPacket.CLIENT_LOOKUP_REGISTER) {
 					packetToClient.remoteList = new ArrayList<ClientInfo>(connectedClients);
-					connectedClients.add(packetFromClient.myInfo);
 					packetToClient.myInfo = new ClientInfo(packetFromClient.myInfo.clientName, packetFromClient.myInfo.clientHostname, packetFromClient.myInfo.clientPort, pID);
+					connectedClients.add(packetToClient.myInfo);
 					pID++;
 					toClient.writeObject(packetToClient);
 					break;
