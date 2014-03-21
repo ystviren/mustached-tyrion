@@ -51,19 +51,9 @@ public class RemoteClient extends Client implements Runnable{
     public RemoteClient(String name, String hostname, int port, int ID) {
             super(name, ID);
             
-            try {
-				outSocket = new Socket(hostname, port);
-				myOut = new ObjectOutputStream(outSocket.getOutputStream());
-				this.hostname = hostname;
-				this.port = port;
-			} catch (UnknownHostException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-            
+            this.hostname = hostname;
+			this.port = port;
+			            
     		thread = new Thread(this);	
     }
 
@@ -74,6 +64,20 @@ public class RemoteClient extends Client implements Runnable{
 
 	public void writeObject(MazewarPacket outPacket) {
 		// TODO Auto-generated method stub
+		if (outSocket == null) {
+			try {
+				outSocket = new Socket(hostname, port);
+				myOut = new ObjectOutputStream(outSocket.getOutputStream());		
+			} catch (UnknownHostException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		
 		try {
 			myOut.writeObject(outPacket);
 		} catch (IOException e) {
@@ -123,7 +127,7 @@ public class RemoteClient extends Client implements Runnable{
 				}else if (remotePacket.type == MazewarPacket.CLIENT_BYE){
 					//TODO change connection to maintain ring
 				}else if(remotePacket.type == MazewarPacket.CLIENT_TEST){
-					System.out.println("Size of queue is " + remotePacket.eventQueue.size() + ", from " + remotePacket.clientName);
+					//System.out.println("Size of queue is " + remotePacket.eventQueue.size() + ", from " + remotePacket.clientName);
 				}else{
 					System.out.println("Unknown packet type" + remotePacket.type);
 					
@@ -180,6 +184,8 @@ public class RemoteClient extends Client implements Runnable{
 	}
 	
 	public void setOutSocket(String hostname, int port) {
+		this.hostname = hostname;
+		this.port = port;
 		if (outSocket == null) { 
 			try {
 				outSocket = new Socket(hostname, port);

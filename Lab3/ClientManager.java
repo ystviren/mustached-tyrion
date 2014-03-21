@@ -25,7 +25,7 @@ public class ClientManager implements MazeListener, Runnable{
 	private static int player_number;
 	private static String player_name;
 	
-	private Socket lookupServer = null;
+	
 	private final String lookupName;
 	private final int lookupPort;
 	
@@ -59,15 +59,14 @@ public class ClientManager implements MazeListener, Runnable{
 		lookupName = lookup_hostname;
 		lookupPort = lookup_port;
 		
-		/** step 1 **/
-		// set up connection to the lookup server
+/** step 1: existing clients from lookup server **/
 		
+		// set up connection to the lookup server
+		Socket lookupServer = null;
 		ObjectInputStream lookupIn = null;
 		ObjectOutputStream lookupOut = null;
-		
 		try {
 			lookupServer = new Socket(lookupName, lookupPort);
-			
 			lookupOut = new ObjectOutputStream(lookupServer.getOutputStream());
 			lookupIn = new ObjectInputStream(lookupServer.getInputStream());
 		} catch (UnknownHostException e) {
@@ -91,12 +90,16 @@ public class ClientManager implements MazeListener, Runnable{
 			e.printStackTrace();
 		}
 		
-		/** step 2 **/
 		// get reply from lookup server
 		MazewarPacket inPacket = null;
 		ArrayList<ClientInfo> remoteInfo = new ArrayList<ClientInfo>();
 		try {
 			inPacket = (MazewarPacket)lookupIn.readObject();
+			// look for our player number
+			ClientManager.player_number = inPacket.myInfo.clientID;
+			
+			guiClient = new GUIClient(LocalName, ClientManager.player_number);
+			
 			remoteInfo.addAll(inPacket.remoteList);
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -130,25 +133,13 @@ public class ClientManager implements MazeListener, Runnable{
 		
 		// the lookup server should return a list of names corresponding to all the registered clients (including us)
 		
-		/** Use the list to generate required connections **/
-		
-		// look for our player number
-		ClientManager.player_number = inPacket.myInfo.clientID;
-		// TODO: check the contents of the packet
-		guiClient = new GUIClient(LocalName, ClientManager.player_number);
-		
-		/** step 3 **/
+		/** Step through the list of remote clients to create RemoteClient objects **/
 		// iterate through the list the name server gave us and set up remote clients
 		String tmpName = null;
 		String tmpHostname = null;
 		int tmpPort = 0;
 		int tmpID = 0;
 		remoteClients = new ArrayList<RemoteClient>();
-		
-		outPacket = new MazewarPacket();
-		outPacket.type = MazewarPacket.CLIENT_REGISTER;
-		// TODO: change this to use a packet object
-		outPacket.myInfo = new ClientInfo(ClientManager.player_name, local_hostname, local_port, 0);
 		
 		int i;
 		for (i = 0; i < remoteInfo.size(); i++) {
@@ -157,8 +148,8 @@ public class ClientManager implements MazeListener, Runnable{
 			tmpPort = remoteInfo.get(i).clientPort;
 			tmpID = remoteInfo.get(i).clientID;
 			
-			
-			// creates new client object with connected output socket/stream
+			// No longer creates output socket, preventing a new client from opening connections
+			// to all previously existing clients
 			RemoteClient tmpClient = new RemoteClient(tmpName, tmpHostname, tmpPort, tmpID);
 			
 			//guiClient.addClient(tmpClient.getOutStream());
@@ -167,23 +158,37 @@ public class ClientManager implements MazeListener, Runnable{
 			
 			//maze.addClient(tmpClient);
 		}
-		
-		if (remoteClients.size() > 0) {
-			
-			// tell the guy before us to start sending us his stuff
-			remoteClients.get(i-1).writeObject(outPacket);
-			nextClient = remoteClients.get(0).getOutStream();
-		}
-		
-		// setup server socket for receiving incoming connections
+
+// setup server socket for receiving incoming connections
 		try {
 			mySocket = new ServerSocket(local_port);
 			networkReceiver = new ClientNetworkListener(mySocket, this);
 		} catch (IOException e) {
 			System.out.println("Failed to create Server Socket");
 			e.printStackTrace();
-		}
+		}		
 		
+/** step 2: Add yourself to the ring **/		
+		
+		outPacket = new MazewarPacket();
+		outPacket.type = MazewarPacket.CLIENT_REGISTER;
+		// TODO: change this to use a packet object
+		outPacket.myInfo = new ClientInfo(ClientManager.player_name, local_hostname, local_port, ClientManager.player_number);
+		
+		if (remoteClients.size() > 0) {
+			
+			// we add ourselves to the "end" of the ring by notifying the last client to use us
+			// as his successor
+			remoteClients.get(remoteClients.size()-1).writeObject(outPacket);
+			
+			// we set our successor to be first client in the list:
+			outPacket = new MazewarPacket();
+			outPacket.type = MazewarPacket.CLIENT_TEST;
+			// TODO: change this to use a packet object
+			outPacket.myInfo = new ClientInfo(ClientManager.player_name, local_hostname, local_port, ClientManager.player_number);
+			remoteClients.get(0).writeObject(outPacket);
+			nextClient = remoteClients.get(0).getOutStream();
+		}
 		
 		// start thread for broadcasting and processing command buffer
 		//System.out.println("Do I get here?");
@@ -343,18 +348,13 @@ public class ClientManager implements MazeListener, Runnable{
 		String newHostname = packetFromRemote.myInfo.clientHostname;
 		int newPort = packetFromRemote.myInfo.clientPort;
 		int newID = packetFromRemote.myInfo.clientID;
-		RemoteClient newClient = null;
+		RemoteClient newClient = remoteClientExists(newID);
 		
-		if (!remoteClientExists(newID)) {
+		if (newClient == null) {
 			// use a different constructor here because we don't need to open 
 			// a connection to the new client
-			newClient = new RemoteClient(newName, newID);
-			newClient.setInSocket(newSocket, tmpIn);
+			newClient = new RemoteClient(newName, newHostname, newPort, newID);
 			remoteClients.add(newClient);
-		}
-		else {
-			newClient = (RemoteClient)getClient(newID);
-			newClient.setInSocket(newSocket, tmpIn);
 		}
 		
 		if (packetFromRemote.type == MazewarPacket.CLIENT_REGISTER) {
@@ -362,22 +362,23 @@ public class ClientManager implements MazeListener, Runnable{
 			nextClient = newClient.getOutStream();
 		}
 		
+		newClient.setInSocket(newSocket, tmpIn);
 		// start listening for stuff to throw in the command buffer
 		newClient.startThread();
 	}
 
-	private boolean remoteClientExists(int newID) {
+	private RemoteClient remoteClientExists(int newID) {
 		// TODO Auto-generated method stub
 		int i;
 		// search in remote clients first
 		for (i = 0; i < remoteClients.size(); i++) {
 			if (remoteClients.get(i).getID() == newID) {
-				return true;
+				return remoteClients.get(i);
 			}
 		}
 		
 		
-		return false;
+		return null;
 	}
 	
 }
