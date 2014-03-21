@@ -20,6 +20,7 @@ public class ClientManager implements MazeListener, Runnable{
 	private GUIClient guiClient = null;
 	
 	private Maze maze = null;
+	private OverheadMazePanel overheadPanel = null;
 	
 	private static int player_number;
 	private static String player_name;
@@ -36,6 +37,10 @@ public class ClientManager implements MazeListener, Runnable{
 	private ClientNetworkListener networkReceiver = null;
 	
 	private boolean haveToken = false;
+	
+	public void setOverheadPanel( OverheadMazePanel overheadPanel){
+		this.overheadPanel = overheadPanel;
+	}
 	
 	public ClientManager(Maze maze, String LocalName, String local_hostname, int local_port, String lookup_hostname, int lookup_port) {
 		/**
@@ -168,7 +173,14 @@ public class ClientManager implements MazeListener, Runnable{
 		}
 		
 		// setup server socket for receiving incoming connections
-		networkReceiver = new ClientNetworkListener(mySocket, this);
+		try {
+			mySocket = new ServerSocket(local_port);
+			networkReceiver = new ClientNetworkListener(mySocket, this);
+		} catch (IOException e) {
+			System.out.println("Failed to create Server Socket");
+			e.printStackTrace();
+		}
+		
 		
 		// start thread for broadcasting and processing command buffer
 		//System.out.println("Do I get here?");
