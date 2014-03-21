@@ -180,6 +180,18 @@ public class RemoteClient extends Client implements Runnable{
 
 	public ObjectOutputStream getOutStream() {
 		// TODO Auto-generated method stub
+		if (outSocket == null) {
+			try {
+				outSocket = new Socket(hostname, port);
+				myOut = new ObjectOutputStream(outSocket.getOutputStream());		
+			} catch (UnknownHostException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 		return myOut;
 	}
 	
