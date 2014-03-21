@@ -94,8 +94,10 @@ public class ClientManager implements MazeListener, Runnable{
 		/** step 2 **/
 		// get reply from lookup server
 		MazewarPacket inPacket = null;
+		ArrayList<ClientInfo> remoteInfo = new ArrayList<ClientInfo>();
 		try {
 			inPacket = (MazewarPacket)lookupIn.readObject();
+			remoteInfo.addAll(inPacket.remoteList);
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -149,11 +151,12 @@ public class ClientManager implements MazeListener, Runnable{
 		outPacket.myInfo = new ClientInfo(ClientManager.player_name, local_hostname, local_port, 0);
 		
 		int i;
-		for (i = 0; i < inPacket.remoteList.size(); i++) {
-			tmpName = inPacket.remoteList.get(i).clientName;
-			tmpHostname = inPacket.remoteList.get(i).clientHostname;
-			tmpPort = inPacket.remoteList.get(i).clientPort;
-			tmpID = inPacket.remoteList.get(i).clientID;
+		for (i = 0; i < remoteInfo.size(); i++) {
+			tmpName = remoteInfo.get(i).clientName;
+			tmpHostname = remoteInfo.get(i).clientHostname;
+			tmpPort = remoteInfo.get(i).clientPort;
+			tmpID = remoteInfo.get(i).clientID;
+			
 			
 			// creates new client object with connected output socket/stream
 			RemoteClient tmpClient = new RemoteClient(tmpName, tmpHostname, tmpPort, tmpID);

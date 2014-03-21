@@ -6,14 +6,12 @@ import java.io.*;
 public class MazewarNameServerHandlerThread extends Thread {
 	private Socket socket = null;
 	
-	ArrayList<ClientInfo> connectedClients;
-	private int pID;
+	public static ArrayList<ClientInfo> connectedClients = new ArrayList<ClientInfo>();
+	private static int pID = 1;
 
 	public MazewarNameServerHandlerThread(Socket socket) {
 		super("MazewarNameServerHandlerThread");
-		connectedClients = new ArrayList<ClientInfo>();
 		this.socket = socket;
-		pID = 1;
 		System.out.println("Created new Thread to handle client");
 	}
 
@@ -46,13 +44,15 @@ public class MazewarNameServerHandlerThread extends Thread {
 				}	
 				
 				if (packetFromClient.type == MazewarPacket.CLIENT_REGISTER) {
-					synchronized (connectedClients){
-						System.out.println("Sent Packet");
+					synchronized (MazewarNameServerHandlerThread.connectedClients){
 						// Assert that the sender, sends it information
 						assert(packetFromClient.myInfo != null);
-						packetToClient.remoteList = new ArrayList<ClientInfo>(connectedClients);
+						packetToClient.remoteList = new ArrayList<ClientInfo>();
+						packetToClient.remoteList.addAll(MazewarNameServerHandlerThread.connectedClients);
 						packetToClient.myInfo = new ClientInfo(packetFromClient.myInfo.clientName, packetFromClient.myInfo.clientHostname, packetFromClient.myInfo.clientPort, pID);
-						connectedClients.add(packetToClient.myInfo);
+						MazewarNameServerHandlerThread.connectedClients.add(packetToClient.myInfo);
+						System.out.println("Sent Packet, size of list is " + MazewarNameServerHandlerThread.connectedClients.size());
+						System.out.println("Size of sent packet is " + packetToClient.remoteList.size());
 						pID++;
 						toClient.writeObject(packetToClient);
 					}

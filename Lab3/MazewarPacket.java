@@ -76,7 +76,7 @@ public class MazewarPacket implements Serializable {
 	public int mapSeed;
 	
 
-	public ArrayList<ClientInfo> remoteList = null;
+	public ArrayList<ClientInfo> remoteList;
 	//  make client hold its own Info
 	public ClientInfo myInfo = null;
 	
