@@ -62,6 +62,10 @@ public class RemoteClient extends Client implements Runnable{
     		thread = new Thread(this);	
     }
 
+    public RemoteClient(String name, int ID) {
+        super(name, ID);
+		thread = new Thread(this);	
+}
 
 	public void writeObject(MazewarPacket outPacket) {
 		// TODO Auto-generated method stub
@@ -167,4 +171,20 @@ public class RemoteClient extends Client implements Runnable{
 		// TODO Auto-generated method stub
 		return myOut;
 	}
+	
+	public void setOutSocket(String hostname, int port) {
+		if (outSocket == null) { 
+			try {
+				outSocket = new Socket(hostname, port);
+				myOut = new ObjectOutputStream(outSocket.getOutputStream());		
+			} catch (UnknownHostException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+	
 }

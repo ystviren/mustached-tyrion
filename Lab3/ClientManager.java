@@ -440,7 +440,9 @@ public class ClientManager implements MazeListener, Runnable{
 		RemoteClient newClient = null;
 		
 		if (!remoteClientExists(newID)) {
-			newClient = new RemoteClient(newName, newHostname, newPort, newID);
+			// use a different constructor here because we don't need to open 
+			// a connection to the new client
+			newClient = new RemoteClient(newName, newID);
 			newClient.setInSocket(newSocket, tmpIn);
 			remoteClients.add(newClient);
 		}
@@ -449,8 +451,10 @@ public class ClientManager implements MazeListener, Runnable{
 			newClient.setInSocket(newSocket, tmpIn);
 		}
 		
-		// the guy that sent me this is now my new next
-		nextClient = newClient.getOutStream();
+		if (packet type == register) {
+			// the guy that sent me this is now my new next
+			nextClient = newClient.getOutStream();
+		}
 		
 		// start listening for stuff to throw in the command buffer
 		newClient.startThread();
