@@ -40,6 +40,9 @@ public class RemoteClient extends Client implements Runnable{
 	private Socket inSocket = null;
 	private ObjectInputStream myIn = null;
 	
+	private String hostname;
+	private int port;
+	
 	
     /**
      * Create a remotely controlled {@link Client}.
@@ -50,7 +53,9 @@ public class RemoteClient extends Client implements Runnable{
             
             try {
 				outSocket = new Socket(hostname, port);
-				myOut = new ObjectOutputStream(outSocket.getOutputStream());		
+				myOut = new ObjectOutputStream(outSocket.getOutputStream());
+				this.hostname = hostname;
+				this.port = port;
 			} catch (UnknownHostException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
