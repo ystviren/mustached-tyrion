@@ -38,8 +38,6 @@ public class MazewarNameServerHandlerThread extends Thread {
 				
 				if (packetFromClient.type == MazewarPacket.CLIENT_BYE) {
 					gotByePacket = true;
-					packetToClient.type = MazewarPacket.NAME_SERVER_BYE;
-					toClient.writeObject(packetToClient);
 					break;
 				}	
 				
