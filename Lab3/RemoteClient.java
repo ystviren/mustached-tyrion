@@ -127,7 +127,7 @@ public class RemoteClient extends Client implements Runnable{
 				}else if (remotePacket.type == MazewarPacket.CLIENT_BYE){
 					//TODO change connection to maintain ring
 				}else if(remotePacket.type == MazewarPacket.CLIENT_TEST){
-					//System.out.println("Size of queue is " + remotePacket.eventQueue.size() + ", from " + remotePacket.clientName);
+					System.out.println("Recieved packeted from " + remotePacket.clientName);
 				}else{
 					System.out.println("Unknown packet type" + remotePacket.type);
 					
