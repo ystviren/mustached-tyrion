@@ -62,8 +62,9 @@ public class ClientManager implements MazeListener, Runnable{
 		
 		try {
 			lookupServer = new Socket(lookupName, lookupPort);
-			lookupIn = new ObjectInputStream(lookupServer.getInputStream());
+			
 			lookupOut = new ObjectOutputStream(lookupServer.getOutputStream());
+			lookupIn = new ObjectInputStream(lookupServer.getInputStream());
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -226,144 +227,34 @@ public class ClientManager implements MazeListener, Runnable{
 //		maze.addMazeListener(guiClient);
 		
 		// we need to send a packet to the new client with our new info
-		MazewarPacket outPacket = new MazewarPacket();
-		outPacket.myInfo = new ClientInfo(ClientManager.player_name, null, 0, ClientManager.player_number);
-		outPacket.clientPosition = guiClient.getPoint();
-		outPacket.clientOrientation = guiClient.getOrientation();
-		outPacket.clientScore = guiClient.getClientScore(guiClient);
-		newClient.writeObject(outPacket);
-		
-		while (active) {
-			// only do work if we have the token
-			if (haveToken == true){
-				Event newEvent = null;
-				
-				// process the stuff in the queue
-				int i;
-				for(i = 0; i < Client.queue.size();i++){
 
-					// commit actions that are deliverable
-					Event newEvent = null;
-					synchronized(Client.localQueue){
-					if (Client.localQueue.size() > 0 ) {
-						newEvent = Client.localQueue.get(0);
-					} else {
-						continue;
-					}
+		System.out.println("I AM ALIVE");
+		while (active) {
+
+			try {
+				if (nextClient == null){
+					System.out.println("no next connection");
 					
-					if (true) {
-						// now we can remove it from the queue
-						Client.localQueue.remove(0);
-						
-						// parse the contents and commit them
-						/** deliver a command **/		
-		//				public int action;
-		//				public int initTime;
-		//				public int timeDeliver;
-		//				public boolean deliverable;
-		//				public int pID;
-		//				public int count;
-							
-						//identify the client targeted for action
-						Client target = getClient(newEvent.source);
-						
-						assert(target != null);
-						
-						if (newEvent.action == MazewarPacket.CLIENT_REMOVE) {
-		//					maze.removeClient(target);
-		//					clients.remove(target);
-						}
-									
-						if (newEvent.action == MazewarPacket.CLIENT_FORWARD) {
-							//System.out.println("forward");
-							target.forward();
-						} 
-						else if (newEvent.action == MazewarPacket.CLIENT_REVERSE) {
-							//System.out.println("back");
-							target.backup();
-						}
-						else if (newEvent.action == MazewarPacket.CLIENT_LEFT) {
-							//System.out.println("left");
-							target.turnLeft();
-						}
-						else if (newEvent.action == MazewarPacket.CLIENT_RIGHT) {
-							//System.out.println("right");
-							target.turnRight();
-						}
-						
-							newEvent = Client.queue.get(i);
-							// process queue			
-											
-							// parse the contents and commit them
-							/** deliver a command **/		
-			//				public int action;
-			//				public int initTime;
-			//				public int timeDeliver;
-			//				public boolean deliverable;
-			//				public int pID;
-			//				public int count;
-								
-							//identify the client targeted for action
-							Client target = getClient(newEvent.pID);
-							
-							assert(target != null);
-							
-							if (newEvent.action == MazewarPacket.CLIENT_REMOVE) {
-			//					maze.removeClient(target);
-			//					clients.remove(target);
-							}
-										
-							if (newEvent.action == MazewarPacket.CLIENT_FORWARD) {
-								//System.out.println("forward");
-								target.forward();
-							} 
-							else if (newEvent.action == MazewarPacket.CLIENT_REVERSE) {
-								//System.out.println("back");
-								target.backup();
-							}
-							else if (newEvent.action == MazewarPacket.CLIENT_LEFT) {
-								//System.out.println("left");
-								target.turnLeft();
-							}
-							else if (newEvent.action == MazewarPacket.CLIENT_RIGHT) {
-								//System.out.println("right");
-								target.turnRight();
-							}
-							
-							if (newEvent.action == MazewarPacket.CLIENT_FIRE) {
-								//target.fire();
-							}
-							else if (newEvent.action == MazewarPacket.CLIENT_KILLED) {
-								//System.out.println("processing client death");
-								Client source = getClient(newEvent.pID2);
-								
-								assert(source != null);
-			
-				                //if this is being received by someone other than the client that died, need to update position of client that died
-				                if (!target.getName().equals(guiClient.getName())) {
-				                	Mazewar.consolePrintLn(source.getName() + " just vaporized " + target.getName());
-				                	//System.out.println("reposition: " + packetFromServer.clientOrientation.toString());
-				                	maze.repositionClient(target, newEvent.location, newEvent.orientation);
-				                	// notify everybody that the kill happened
-					                maze.notifyKill(source, target);
-				                }
-			//	                else{
-			//	                	updateScore(guiClient, guiClient.getClientScore(guiClient));
-			//	                	updateScore(source, source.getClientScore(source));
-			//	                }	                
-				                
-							}
-			//				else if (newEvent.action == MazewarPacket.CLIENT_SCORE_UPDATE){
-			//					maze.notifyClientFiredPublic(target);
-			//					updateScore(target, target.getClientScore(target));
-			//					System.out.println(target.getClientScore(target));
-			//				}
-			
-						}
-					} //if haveToken
+				}else {
+					System.out.println("Sending Packet");
+					MazewarPacket test = new MazewarPacket();
+					Event event = new Event(player_number, 0, null, null, MazewarPacket.CLIENT_TEST);
+					test.type = MazewarPacket.CLIENT_TEST;
+					test.eventQueue = new ArrayList<Event>();
+					test.eventQueue.add(event);
+					test.eventQueue.add(event);
+					test.eventQueue.add(event);
+					test.clientName = guiClient.getName();
+					nextClient.writeObject(test);
 				}
-			} 
-		}// end of while loop
+			    Thread.sleep(5000);
+			} catch(InterruptedException ex) {
+			    Thread.currentThread().interrupt();
+			} catch(IOException ex){
+				System.out.println("Packet Error");
+				ex.printStackTrace();
+			}
+		}
 	} // end of run function
 
 

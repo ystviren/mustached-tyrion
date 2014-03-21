@@ -1,4 +1,5 @@
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
  /**
  * MazewarPacket
@@ -75,7 +76,7 @@ public class MazewarPacket implements Serializable {
 	public int mapSeed;
 	
 
-	public List<ClientInfo> remoteList = null;
+	public ArrayList<ClientInfo> remoteList = null;
 	//  make client hold its own Info
 	public ClientInfo myInfo = null;
 	
@@ -83,7 +84,7 @@ public class MazewarPacket implements Serializable {
 	
 	// event packet
 	public Event event;
-	public List<Event> eventQueue;
+	public ArrayList<Event> eventQueue;
 	
 	public static int RING_TOKEN = 601;
 	

@@ -6,11 +6,11 @@ import java.io.*;
 public class MazewarNameServerHandlerThread extends Thread {
 	private Socket socket = null;
 	
-	List<ClientInfo> connectedClients;
+	ArrayList<ClientInfo> connectedClients;
 	private int pID;
 
 	public MazewarNameServerHandlerThread(Socket socket) {
-		super("BrokerServerHandlerThread");
+		super("MazewarNameServerHandlerThread");
 		connectedClients = new ArrayList<ClientInfo>();
 		this.socket = socket;
 		pID = 1;
@@ -32,27 +32,30 @@ public class MazewarNameServerHandlerThread extends Thread {
 
 			while ((packetFromClient = (MazewarPacket) fromClient.readObject()) != null) {
 				
-				// Assert that the sender, sends it information
-				assert(packetFromClient.myInfo != null);
+
 				
 				/* create a packet to send reply back to client */
 				packetToClient = new MazewarPacket();
 				packetToClient.type = MazewarPacket.NAME_SERVER_REPLY;
 				
-				if (packetFromClient.type == MazewarPacket.PACKET_NULL || packetFromClient.type == MazewarPacket.CLIENT_BYE) {
+				if (packetFromClient.type == MazewarPacket.CLIENT_BYE) {
 					gotByePacket = true;
 					packetToClient.type = MazewarPacket.NAME_SERVER_BYE;
 					toClient.writeObject(packetToClient);
 					break;
 				}	
 				
-				if (packetFromClient.type == MazewarPacket.CLIENT_LOOKUP_REGISTER) {
-					packetToClient.remoteList = new ArrayList<ClientInfo>(connectedClients);
-					packetToClient.myInfo = new ClientInfo(packetFromClient.myInfo.clientName, packetFromClient.myInfo.clientHostname, packetFromClient.myInfo.clientPort, pID);
-					connectedClients.add(packetToClient.myInfo);
-					pID++;
-					toClient.writeObject(packetToClient);
-					break;
+				if (packetFromClient.type == MazewarPacket.CLIENT_REGISTER) {
+					synchronized (connectedClients){
+						System.out.println("Sent Packet");
+						// Assert that the sender, sends it information
+						assert(packetFromClient.myInfo != null);
+						packetToClient.remoteList = new ArrayList<ClientInfo>(connectedClients);
+						packetToClient.myInfo = new ClientInfo(packetFromClient.myInfo.clientName, packetFromClient.myInfo.clientHostname, packetFromClient.myInfo.clientPort, pID);
+						connectedClients.add(packetToClient.myInfo);
+						pID++;
+						toClient.writeObject(packetToClient);
+					}
 				}
 			}
 

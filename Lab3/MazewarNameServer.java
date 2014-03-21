@@ -18,15 +18,6 @@ public class MazewarNameServer {
             System.exit(-1);
         }
         
-        File checker = new File("lookup");
-        if (checker.exists()){
-        	checker.delete();
-        }
-        
-        if (!checker.createNewFile()){
-        	System.err.println("ERROR: Could not create register file");
-        	System.exit(-1);
-        }
         
         while (listening) {
         	new MazewarNameServerHandlerThread(serverSocket.accept()).start();
