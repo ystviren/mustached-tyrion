@@ -135,6 +135,7 @@ public class ClientManager implements MazeListener, Runnable{
 		String tmpHostname = null;
 		int tmpPort = 0;
 		int tmpID = 0;
+		remoteClients = new ArrayList<RemoteClient>();
 		
 		outPacket = new MazewarPacket();
 		outPacket.type = MazewarPacket.CLIENT_REGISTER;
@@ -148,62 +149,31 @@ public class ClientManager implements MazeListener, Runnable{
 			tmpPort = inPacket.remoteList.get(i).clientPort;
 			tmpID = inPacket.remoteList.get(i).clientID;
 			
+			// creates new client object with connected output socket/stream
 			RemoteClient tmpClient = new RemoteClient(tmpName, tmpHostname, tmpPort, tmpID);
-			guiClient.addClient(tmpClient.getOutStream());
+			
+			//guiClient.addClient(tmpClient.getOutStream());
+			
 			remoteClients.add(tmpClient);
-			maze.addClient(tmpClient);
 			
-			// wait for client to reply
-			Socket tmpSocket = null;
-			try {
-				tmpSocket = mySocket.accept();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
-			// configures input socket, also completes registration by
-			// waiting for incoming register packet with client position
-			tmpClient.setInSocket(tmpSocket, null);
-			
-			// start listening for stuff to throw in the command buffer
-			tmpClient.startThread();
+			//maze.addClient(tmpClient);
 		}
 		
-		// at this point we should have all the remote clients placed and scores up to date
-		// now we can place ourselves on the map
-		
-		
-		maze.addClient(guiClient);
-		// gui client listens for its own death
-		maze.addMazeListener(guiClient);
-		
-		// we need to send our position information to everyone
-		outPacket = new MazewarPacket();
-		outPacket.type = MazewarPacket.CLIENT_REGISTER;
-		outPacket.myInfo = new ClientInfo(ClientManager.player_name, null, 0, ClientManager.player_number);
-		outPacket.clientPosition = guiClient.getPoint();
-		outPacket.clientOrientation = guiClient.getOrientation();
-		
-		// multicast
-		multicastMessage(outPacket);
+		if (remoteClients.size() > 0) {
+			
+			// tell the guy before us to start sending us his stuff
+			remoteClients.get(i-1).writeObject(outPacket);
+			nextClient = remoteClients.get(0).getOutStream();
+		}
 		
 		// setup server socket for receiving incoming connections
-		networkReceiver = new ClientNetworkListener(mySocket, this);		
+		networkReceiver = new ClientNetworkListener(mySocket, this);
 		
 		// start thread for broadcasting and processing command buffer
-		System.out.println("Do I get here?");
+		//System.out.println("Do I get here?");
 		active = true;
 		thread = new Thread(this);
 		thread.start();
-	}
-	
-	private void multicastMessage(MazewarPacket outPacket) {
-		// iterate throught the list of remote clients and send packet to all of them
-		int i;
-		for (i = 0; i < remoteClients.size(); i++) {
-			remoteClients.get(i).writeObject(outPacket);
-		}
 	}
 
 	public GUIClient getLocalClient() {
@@ -248,6 +218,20 @@ public class ClientManager implements MazeListener, Runnable{
 		// 2. process the queue
 		// 3. add local buffer contents to the queue
 		// 4. send queue and token to the next guy
+		
+		// need to handle the first receive of queue here for joining properly
+		
+//		maze.addClient(guiClient);
+//		// gui client listens for its own death
+//		maze.addMazeListener(guiClient);
+		
+		// we need to send a packet to the new client with our new info
+		MazewarPacket outPacket = new MazewarPacket();
+		outPacket.myInfo = new ClientInfo(ClientManager.player_name, null, 0, ClientManager.player_number);
+		outPacket.clientPosition = guiClient.getPoint();
+		outPacket.clientOrientation = guiClient.getOrientation();
+		outPacket.clientScore = guiClient.getClientScore(guiClient);
+		newClient.writeObject(outPacket);
 		
 		while (active) {
 			// only do work if we have the token
@@ -429,7 +413,7 @@ public class ClientManager implements MazeListener, Runnable{
 		// TODO Auto-generated method stub
 		
 		// wait for the client to send us their info
-		ObjectInputStream tmpIn = null;;
+		ObjectInputStream tmpIn = null;
 		try {
 			tmpIn = new ObjectInputStream(newSocket.getInputStream());
 		} catch (IOException e) {
@@ -453,43 +437,37 @@ public class ClientManager implements MazeListener, Runnable{
 		String newHostname = packetFromRemote.myInfo.clientHostname;
 		int newPort = packetFromRemote.myInfo.clientPort;
 		int newID = packetFromRemote.myInfo.clientID;
+		RemoteClient newClient = null;
 		
-		RemoteClient newClient = new RemoteClient(newName, newHostname, newPort, newID);
-		guiClient.addClient(newClient.getOutStream());
-		newClient.setInSocket(newSocket, tmpIn);
-		remoteClients.add(newClient);
-		maze.addClient(newClient);
-		
-		// we need to send a packet to the new client with our new info
-		MazewarPacket outPacket = new MazewarPacket();
-		outPacket.myInfo = new ClientInfo(ClientManager.player_name, null, 0, ClientManager.player_number);
-		outPacket.clientPosition = guiClient.getPoint();
-		outPacket.clientOrientation = guiClient.getOrientation();
-		outPacket.clientScore = guiClient.getClientScore(guiClient);
-		newClient.writeObject(outPacket);
-		
-		//wait for client to send us its position and score info
-		try {
-			packetFromRemote = (MazewarPacket)tmpIn.readObject();
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if (!remoteClientExists(newID)) {
+			newClient = new RemoteClient(newName, newHostname, newPort, newID);
+			newClient.setInSocket(newSocket, tmpIn);
+			remoteClients.add(newClient);
+		}
+		else {
+			newClient = (RemoteClient)getClient(newID);
+			newClient.setInSocket(newSocket, tmpIn);
 		}
 		
-		// extract position, direction, score
-		Point tmpPos = packetFromRemote.clientPosition;
-		Direction tmpDir = packetFromRemote.clientOrientation;
-		int tmpScore = packetFromRemote.clientScore;
-		
-		maze.repositionClient(newClient, tmpPos, tmpDir);
-		// update the score
-		newClient.clientSetScore(newClient, tmpScore);
+		// the guy that sent me this is now my new next
+		nextClient = newClient.getOutStream();
 		
 		// start listening for stuff to throw in the command buffer
 		newClient.startThread();
+	}
+
+	private boolean remoteClientExists(int newID) {
+		// TODO Auto-generated method stub
+		int i;
+		// search in remote clients first
+		for (i = 0; i < remoteClients.size(); i++) {
+			if (remoteClients.get(i).getID() == newID) {
+				return true;
+			}
+		}
+		
+		
+		return false;
 	}
 	
 }
