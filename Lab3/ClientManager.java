@@ -342,7 +342,7 @@ public class ClientManager implements MazeListener, Runnable{
 			newClient.setInSocket(newSocket, tmpIn);
 		}
 		
-		if (packet type == register) {
+		if (packetFromRemote.type == MazewarPacket.CLIENT_REGISTER) {
 			// the guy that sent me this is now my new next
 			nextClient = newClient.getOutStream();
 		}
