@@ -34,8 +34,8 @@ import java.util.Iterator;
  */
 public abstract class Client {
 	
-		public static List<Event> localQueue = new ArrayList<Event>();
-		public static List<Event> actionQueue = new ArrayList<Event>();
+		public static ArrayList<Event> localQueue = new ArrayList<Event>();
+		public static ArrayList<Event> actionQueue = new ArrayList<Event>();
 		
 		public List<Event> getLocalQueue(){
 			return localQueue;
