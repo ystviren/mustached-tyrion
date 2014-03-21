@@ -87,5 +87,6 @@ public class MazewarPacket implements Serializable {
 	public ArrayList<Event> eventQueue;
 	
 	public static int RING_TOKEN = 601;
+	public static int JOIN_CONFIRM = 602;
 	
 }

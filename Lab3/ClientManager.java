@@ -37,6 +37,7 @@ public class ClientManager implements MazeListener, Runnable{
 	private ClientNetworkListener networkReceiver = null;
 	
 	private boolean haveToken = false;
+	private ClientInfo myInfo;
 	
 	public void setVisible( Mazewar mazePanel){
 		this.mazePanel = mazePanel;
@@ -174,7 +175,7 @@ public class ClientManager implements MazeListener, Runnable{
 		outPacket.type = MazewarPacket.CLIENT_REGISTER;
 		// TODO: change this to use a packet object
 		outPacket.myInfo = new ClientInfo(ClientManager.player_name, local_hostname, local_port, ClientManager.player_number);
-		
+		this.myInfo = new ClientInfo(ClientManager.player_name, local_hostname, local_port, ClientManager.player_number);
 		if (remoteClients.size() > 0) {
 			
 			// we add ourselves to the "end" of the ring by notifying the last client to use us
@@ -259,6 +260,7 @@ public class ClientManager implements MazeListener, Runnable{
 					System.out.println("Sending Packet");
 					MazewarPacket test = new MazewarPacket();
 					Event event = new Event(player_number, 0, null, null, MazewarPacket.CLIENT_TEST);
+					test.myInfo = myInfo;
 					test.type = MazewarPacket.CLIENT_TEST;
 					test.eventQueue = new ArrayList<Event>();
 					test.eventQueue.add(event);
@@ -364,6 +366,16 @@ public class ClientManager implements MazeListener, Runnable{
 		
 		newClient.setInSocket(newSocket, tmpIn);
 		// start listening for stuff to throw in the command buffer
+		MazewarPacket confirm = new MazewarPacket();
+		confirm.myInfo = myInfo;
+		confirm.type = MazewarPacket.JOIN_CONFIRM;
+		confirm.clientName = player_name;
+		try {
+			nextClient.writeObject(confirm);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		newClient.startThread();
 	}
 
