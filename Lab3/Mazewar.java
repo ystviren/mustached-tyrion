@@ -235,13 +235,13 @@ public class Mazewar extends JFrame {
 		pack();
 
 		// Let the magic begin.
-		setVisible(true);
+		//setVisible(true);
 		// Since client does not exist yet, add the overheadPanel and focus
 		// when gui is added
 		
-		clientManager.setOverheadPanel(overheadPanel);
-		//overheadPanel.repaint();
-		//this.requestFocusInWindow();			
+		clientManager.setVisible(this);
+		overheadPanel.repaint();
+		this.requestFocusInWindow();			
 	}
 
 	/**

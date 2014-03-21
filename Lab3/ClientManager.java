@@ -20,7 +20,7 @@ public class ClientManager implements MazeListener, Runnable{
 	private GUIClient guiClient = null;
 	
 	private Maze maze = null;
-	private OverheadMazePanel overheadPanel = null;
+	private Mazewar mazePanel = null;
 	
 	private static int player_number;
 	private static String player_name;
@@ -38,8 +38,8 @@ public class ClientManager implements MazeListener, Runnable{
 	
 	private boolean haveToken = false;
 	
-	public void setOverheadPanel( OverheadMazePanel overheadPanel){
-		this.overheadPanel = overheadPanel;
+	public void setVisible( Mazewar mazePanel){
+		this.mazePanel = mazePanel;
 	}
 	
 	public ClientManager(Maze maze, String LocalName, String local_hostname, int local_port, String lookup_hostname, int lookup_port) {
