@@ -350,7 +350,7 @@ public class ClientManager implements MazeListener, Runnable{
 								//place the client
 								maze.addClient(newClient);
 								
-								maze.repositionClient(newClient, newAction.location, newAction.orientation)
+								maze.repositionClient(newClient, newAction.location, newAction.orientation);
 								
 							}
 						}
