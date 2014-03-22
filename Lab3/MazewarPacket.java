@@ -11,12 +11,25 @@ class ClientInfo implements Serializable {
 	public String clientHostname; 
 	public int clientPort;
 	public int clientID;
+	public Point clientPos;
+	public Direction clientOrientation;
+	public int clientScore;
 	
 	public ClientInfo(String name, String hostname, int port, int ID) {
 		this.clientName = name;
 		this.clientHostname = hostname;
 		this.clientPort = port;
 		this.clientID = ID;
+	}
+	
+	public ClientInfo(String name, String hostname, int port, int ID, Point pos, Direction dir, int score) {
+		this.clientName = name;
+		this.clientHostname = hostname;
+		this.clientPort = port;
+		this.clientID = ID;
+		this.clientPos = pos;
+		this.clientOrientation = dir;
+		this.clientScore = score;
 	}
 }
 
@@ -88,5 +101,8 @@ public class MazewarPacket implements Serializable {
 	
 	public static int RING_TOKEN = 601;
 	public static int JOIN_CONFIRM = 602;
+	public static int REQUEST_STATE = 603;
+	public static int REPLY_STATE = 604;
+	public static int CLIENT_JOIN = 605;
 	
 }
