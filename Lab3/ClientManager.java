@@ -306,7 +306,7 @@ public class ClientManager implements MazeListener, Runnable{
 						needSync = false;
 						// we dont do the actions in the current queue because the client before us
 						// already did them, and we mirrored their state.
-					} else {
+					} else if (Client.actionQueue != null) {
 					
 					
 						Event newAction = null;
@@ -314,9 +314,9 @@ public class ClientManager implements MazeListener, Runnable{
 						for (i = 0; i < Client.actionQueue.size(); i++) {
 							
 							if (newAction.source == ClientManager.player_number) {
-								newAction = Client.localQueue.remove(i);
+								newAction = Client.actionQueue.remove(i);
 							} else {
-								newAction = Client.localQueue.get(i);
+								newAction = Client.actionQueue.get(i);
 							}
 								
 							
