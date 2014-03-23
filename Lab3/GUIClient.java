@@ -53,10 +53,6 @@ public class GUIClient extends LocalClient implements KeyListener, MazeListener 
 		this.out.add(out);
 	}
 
-	public int getLamport() {
-		return 0;
-	}
-
 	/**
 	 * Handle a key press.
 	 * 

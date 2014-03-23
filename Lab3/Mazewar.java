@@ -88,7 +88,7 @@ public class Mazewar extends JFrame {
 	 * The table the displays the scores.
 	 */
 	private JTable scoreTable = null;
-
+	private GUIClient guiClient = null;
 	/**
 	 * Create the textpane statically so that we can write to it globally using
 	 * the static consolePrint methods
@@ -172,7 +172,7 @@ public class Mazewar extends JFrame {
 		// initialize the client manager to set up and manage the clients
 		ClientManager clientManager = new ClientManager(maze, LocalName, hostname, Integer.parseInt(port), lookup_hostname, Integer.parseInt(lookup_port));
 		
-		GUIClient guiClient = clientManager.getLocalClient();
+		guiClient = clientManager.getLocalClient();
 		this.addKeyListener(guiClient);
 		
 		// Have the ScoreTableModel listen to the maze to find
@@ -235,13 +235,14 @@ public class Mazewar extends JFrame {
 		pack();
 
 		// Let the magic begin.
-		//setVisible(true);
+		setVisible(true);
 		// Since client does not exist yet, add the overheadPanel and focus
 		// when gui is added
 		
-		clientManager.setVisible(this);
+		//clientManager.setVisible(this);
 		overheadPanel.repaint();
-		this.requestFocusInWindow();			
+		this.requestFocusInWindow();
+		
 	}
 
 	/**

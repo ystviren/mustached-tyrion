@@ -20,7 +20,6 @@ public class ClientManager implements MazeListener, Runnable{
 	private GUIClient guiClient = null;
 	
 	private static Maze maze = null;
-	private Mazewar mazePanel = null;
 	
 	private static int player_number;
 	private static String player_name;
@@ -40,11 +39,6 @@ public class ClientManager implements MazeListener, Runnable{
 	public static boolean needSync = true;
 	static ClientInfo myInfo;
 	
-	public void setVisible( Mazewar mazePanel){
-		this.mazePanel = mazePanel;
-		// let the magic begin??
-		this.mazePanel.setVisible(true);
-	}
 	
 	public ClientManager(Maze maze, String LocalName, String local_hostname, int local_port, String lookup_hostname, int lookup_port) {
 		/**
@@ -200,8 +194,8 @@ public class ClientManager implements MazeListener, Runnable{
 			haveToken = true;
 			needSync = false;
 			// you can also place yourself be cause nobody else is on the board
-			maze.addClient(guiClient);
-			mazePanel.setVisible(true);
+			ClientManager.maze.addClient(guiClient);
+			//mazePanel.setVisible(true);
 		}
 		
 		// start thread for broadcasting and processing command buffer
