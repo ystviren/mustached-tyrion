@@ -320,8 +320,8 @@ public class MazeImpl extends Maze implements Serializable, ClientListener, Runn
 		if (contents != null) {
 			// If it is a Client, kill it outright
 			if (contents instanceof Client) {
-				System.out.println(client.getName());
-				//notifyClientFired(client);
+				//System.out.println(client.getName());
+				notifyClientFired(client);
 				if (client.getClass().equals(GUIClient.class)) {
 					GUIClient tmp = (GUIClient) client;
 						Event event = new Event(tmp.pID, 0, tmp.getPoint(), tmp.getOrientation(), MazewarPacket.CLIENT_SCORE_UPDATE);
@@ -350,8 +350,8 @@ public class MazeImpl extends Maze implements Serializable, ClientListener, Runn
 		/* Write the new cell */
 		projectileMap.put(prj, newPoint);
 		newCell.setContents(prj);
-		System.out.println(client.getName());
-		//notifyClientFired(client);
+		//System.out.println(client.getName());
+		notifyClientFired(client);
 		if (client.getClass().equals(GUIClient.class)) {
 			GUIClient tmp = (GUIClient) client;
 			Event event = new Event(tmp.pID, 0, tmp.getPoint(), tmp.getOrientation(), MazewarPacket.CLIENT_SCORE_UPDATE);
