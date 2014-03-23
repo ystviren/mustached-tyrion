@@ -101,6 +101,7 @@ public class ClientManager implements MazeListener, Runnable{
 			inPacket = (MazewarPacket)lookupIn.readObject();
 			// look for our player number
 			ClientManager.player_number = inPacket.myInfo.clientID;
+			myInfo = new ClientInfo();
 			myInfo.clientHostname = local_hostname;
 			myInfo.clientName = ClientManager.player_name;
 			myInfo.clientPort = local_port;
@@ -200,6 +201,7 @@ public class ClientManager implements MazeListener, Runnable{
 			needSync = false;
 			// you can also place yourself be cause nobody else is on the board
 			maze.addClient(guiClient);
+			mazePanel.setVisible(true);
 		}
 		
 		// start thread for broadcasting and processing command buffer
