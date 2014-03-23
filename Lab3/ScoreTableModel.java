@@ -20,6 +20,7 @@ USA.
 import javax.swing.table.TableModel;
 import javax.swing.event.TableModelListener;
 import javax.swing.event.TableModelEvent;
+
 import java.util.Iterator;
 import java.lang.Integer;
 import java.lang.Class;
@@ -244,6 +245,7 @@ public class ScoreTableModel implements TableModel, MazeListener {
         }
 
         private void notifyListeners() {
+        		System.out.println("new table entry!");
                 Iterator i = listenerSet.iterator();
                 while (i.hasNext()) {
                         Object o = i.next();

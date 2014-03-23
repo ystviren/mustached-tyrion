@@ -169,17 +169,17 @@ public class Mazewar extends JFrame {
 			Mazewar.quit();
 		}
 		
-		// initialize the client manager to set up and manage the clients
-		ClientManager clientManager = new ClientManager(maze, LocalName, hostname, Integer.parseInt(port), lookup_hostname, Integer.parseInt(lookup_port));
-		
-		guiClient = clientManager.getLocalClient();
-		this.addKeyListener(guiClient);
-		
 		// Have the ScoreTableModel listen to the maze to find
 		// out how to adjust scores.
 		ScoreTableModel scoreModel = new ScoreTableModel();
 		assert (scoreModel != null);
 		maze.addMazeListener(scoreModel);
+		
+		// initialize the client manager to set up and manage the clients
+		ClientManager clientManager = new ClientManager(maze, LocalName, hostname, Integer.parseInt(port), lookup_hostname, Integer.parseInt(lookup_port));
+		
+		guiClient = clientManager.getLocalClient();
+		this.addKeyListener(guiClient);
 		
 		// Create the panel that will display the maze.
 		overheadPanel = new OverheadMazePanel(maze, guiClient);
