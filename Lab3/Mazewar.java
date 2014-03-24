@@ -35,6 +35,7 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -151,7 +152,13 @@ public class Mazewar extends JFrame {
 			Mazewar.quit();
 		}
 
-		String hostname = "localhost";
+		String hostname = null;
+		try {
+			hostname = InetAddress.getLocalHost().getHostName();
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		String port = JOptionPane.showInputDialog("Enter local port number");
 		if ((port == null) || (port.length() == 0)) {
