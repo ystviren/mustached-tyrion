@@ -305,11 +305,10 @@ public class ClientManager implements MazeListener, Runnable{
 						newPacket.type = MazewarPacket.REQUEST_STATE;
 
 						newPacket.clientName = newPacket.myInfo.clientName;
-						
-						prevClient.writeObject(newPacket);
-						
+					
 						try {
 							synchronized(lock) {
+								prevClient.writeObject(newPacket);
 								lock.wait();
 							}
 						} catch (InterruptedException e) {
