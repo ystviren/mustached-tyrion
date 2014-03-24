@@ -353,7 +353,8 @@ public class ClientManager implements MazeListener, Runnable{
 							}
 							else if (newAction.action == MazewarPacket.CLIENT_FIRE) {
 								actionClient.fire();
-							}else if (newAction.action == MazewarPacket.CLIENT_JOIN){
+							}
+							else if (newAction.action == MazewarPacket.CLIENT_JOIN){
 								// prevent a client from joining on itself
 								if (newAction.source != ClientManager.player_number) {
 									// check if the client already exists:
@@ -368,6 +369,15 @@ public class ClientManager implements MazeListener, Runnable{
 									
 									//place the client
 									maze.addRemoteClient(newClient, newAction.location, newAction.orientation);
+								}
+							}
+							else if (newAction.action == MazewarPacket.CLIENT_KILLED) {
+								if (newAction.pID2 != ClientManager.player_number) {
+									Client source = getClient(newAction.source);
+									Client target = getClient(newAction.pID2);
+									Mazewar.consolePrintLn(source.getName() + " just vaporized " + target.getName());
+									maze.notifyKill(source, target);
+									maze.repositionClient(target, newAction.location, newAction.orientation);
 								}
 							}
 						}

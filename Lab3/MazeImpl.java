@@ -244,7 +244,7 @@ public class MazeImpl extends Maze implements Serializable, ClientListener, Runn
 		// only want to set cell content to null if we are the ones that were there
 		Object contents = cell.getContents();
 		if (contents != null) {
-			// If it is a Client, kill it outright
+			
 			if (contents instanceof Client) {
 				// check if the client is us
 				Client tmpClient = (Client)contents;
@@ -369,20 +369,6 @@ public class MazeImpl extends Maze implements Serializable, ClientListener, Runn
 			if (contents instanceof Client) {
 				//System.out.println(client.getName());
 				notifyClientFired(client);
-				if (client.getClass().equals(GUIClient.class)) {
-					GUIClient tmp = (GUIClient) client;
-						Event event = new Event(tmp.pID, 0, tmp.getPoint(), tmp.getOrientation(), MazewarPacket.CLIENT_SCORE_UPDATE);
-
-//						MazewarPacket packetToMulticast = new MazewarPacket();
-//						packetToMulticast.type = MazewarPacket.CLIENT_SCORE_UPDATE;
-//						packetToMulticast.clientName = tmp.getName();
-//						packetToMulticast.sourceName = tmp.getName();
-//						packetToMulticast.clientPosition = tmp.getPoint();
-//						packetToMulticast.clientOrientation = tmp.getOrientation();
-						synchronized (Client.localQueue){
-							Client.localQueue.add(event);
-						}
-				}
 				killClient(client, (Client) contents);
 				update();
 				return true;
@@ -633,6 +619,14 @@ public class MazeImpl extends Maze implements Serializable, ClientListener, Runn
 			clientMap.put(target, new DirectedPoint(point, d));
 			update();
 			notifyClientKilled(source, target);
+			
+			// add the death as an event in the local queue
+			Event event = new Event(source.getID(), target.getID(), target.getPoint(), target.getOrientation(), MazewarPacket.CLIENT_KILLED);
+			synchronized (Client.localQueue){
+				Client.localQueue.add(event);
+			}
+			
+			
 		}
 	}
 
