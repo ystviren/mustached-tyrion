@@ -330,7 +330,6 @@ public class ClientManager implements MazeListener, Runnable{
 						Event newAction = null;
 						int i;
 						for (i = 0; i < Client.actionQueue.size(); i++) {
-							
 							if (Client.actionQueue.get(i).source == ClientManager.player_number) {
 								newAction = Client.actionQueue.remove(i);
 							} else {
@@ -380,6 +379,7 @@ public class ClientManager implements MazeListener, Runnable{
 					test.type = MazewarPacket.RING_TOKEN;
 					// append
 					Client.actionQueue.addAll(Client.localQueue);
+					Client.localQueue.clear();
 					test.eventQueue = new ArrayList<Event>(Client.actionQueue);
 					// send dat
 					test.clientName = guiClient.getName();
