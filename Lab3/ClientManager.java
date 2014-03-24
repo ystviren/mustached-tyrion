@@ -385,7 +385,8 @@ public class ClientManager implements MazeListener, Runnable{
 					// append your new actions to the queue and send it along
 						
 					
-					//System.out.println("Sending Packet");
+					System.out.println("Sending Packet");
+					haveToken = false;
 					MazewarPacket test = new MazewarPacket();
 					//Event event = new Event(player_number, 0, null, null, MazewarPacket.CLIENT_TEST);
 					test.myInfo = myInfo;
@@ -401,7 +402,7 @@ public class ClientManager implements MazeListener, Runnable{
 					test.clientName = guiClient.getName();
 					nextClient.writeObject(test);
 					
-					haveToken = false;
+					
 				}
 			    
 			} catch(IOException ex){
@@ -508,7 +509,7 @@ public class ClientManager implements MazeListener, Runnable{
 
 	public void setToken() {
 		// TODO Auto-generated method stub
-		haveToken = true;
+			haveToken = true;
 	}
 
 	public void syncrhonizeClients(ArrayList<ClientInfo> remoteList) {

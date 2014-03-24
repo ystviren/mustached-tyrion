@@ -122,6 +122,7 @@ public class RemoteClient extends Client implements Runnable{
 				MazewarPacket newPacket = new MazewarPacket();
 				
 				if (remotePacket.type == MazewarPacket.RING_TOKEN){
+					System.out.println("Got token");
 					synchronized (Client.actionQueue){
 						// need to clear everything in the action queue
 						Client.actionQueue = new ArrayList<Event>(remotePacket.eventQueue);
