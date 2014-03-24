@@ -583,32 +583,32 @@ public class MazeImpl extends Maze implements Serializable, ClientListener, Runn
 		// ignore kills that are on remote clients
 		if (target.getClass().equals(GUIClient.class)) {
 			Mazewar.consolePrintLn(source.getName() + " just vaporized " + target.getName());
-			Object o = clientMap.remove(target);
-			assert (o instanceof Point);
-			Point point = (Point) o;
-			CellImpl cell = getCellImpl(point);
-			cell.setContents(null);
-			// Pick a random starting point, and check to see if it is already
-			// occupied
-			point = new Point(randomGen.nextInt(maxX), randomGen.nextInt(maxY));
-			cell = getCellImpl(point);
-			// Repeat until we find an empty cell
-			while (cell.getContents() != null) {
-				point = new Point(randomGen.nextInt(maxX), randomGen.nextInt(maxY));
-				cell = getCellImpl(point);
-			}
-			Direction d = Direction.random();
-			while (cell.isWall(d)) {
-				d = Direction.random();
-			}
-			cell.setContents(target);
-			clientMap.put(target, new DirectedPoint(point, d));
-			update();
+//			Object o = clientMap.remove(target);
+//			assert (o instanceof Point);
+//			Point point = (Point) o;
+//			CellImpl cell = getCellImpl(point);
+//			cell.setContents(null);
+//			// Pick a random starting point, and check to see if it is already
+//			// occupied
+//			point = new Point(randomGen.nextInt(maxX), randomGen.nextInt(maxY));
+//			cell = getCellImpl(point);
+//			// Repeat until we find an empty cell
+//			while (cell.getContents() != null) {
+//				point = new Point(randomGen.nextInt(maxX), randomGen.nextInt(maxY));
+//				cell = getCellImpl(point);
+//			}
+//			Direction d = Direction.random();
+//			while (cell.isWall(d)) {
+//				d = Direction.random();
+//			}
+//			cell.setContents(target);
+//			clientMap.put(target, new DirectedPoint(point, d));
+//			update();
 			notifyClientKilled(source, target);
 			
-			System.out.println("Target id is " + target.getID());
+			//System.out.println("Target id is " + target.getID());
 			// add the death as an event in the local queue
-			Event event = new Event(target.getID(),source.getID(),  target.getPoint(), target.getOrientation(), MazewarPacket.CLIENT_KILLED);
+			Event event = new Event(target.getID(),source.getID(),  null, null, MazewarPacket.CLIENT_KILLED);
 			synchronized (Client.localQueue){
 				Client.localQueue.add(event);
 			}

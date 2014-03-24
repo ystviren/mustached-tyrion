@@ -377,13 +377,27 @@ public class ClientManager implements MazeListener, Runnable{
 								}
 							}
 							else if (newAction.action == MazewarPacket.CLIENT_KILLED) {
+								Client source = getClient(newAction.pID2);
+								Client target = getClient(newAction.source);
+								
 								if (newAction.source != ClientManager.player_number) {
-									Client source = getClient(newAction.pID2);
-									Client target = getClient(newAction.source);
+									
 									Mazewar.consolePrintLn(source.getName() + " just vaporized " + target.getName());
 									maze.notifyKill(source, target);
+									
+								}
+								
+								if (newAction.location == null && newAction.orientation == null) {
+									maze.repositionRandom(target);
+									int math = tmp.size() - Client.actionQueue.size();
+									
+									Client.actionQueue.get(i - math).location = target.getPoint();
+									Client.actionQueue.get(i - math).orientation = target.getOrientation();
+								} else {
 									maze.repositionClient(target, newAction.location, newAction.orientation);
 								}
+								
+								
 							}
 						}
 					}
