@@ -514,6 +514,7 @@ public class ClientManager implements MazeListener, Runnable{
 		synchronized(lock) {
 			lock.notify();
 		}
+		needSync = false;
 	}
 
 	// create a list of ClientInfo objects for each remote client
@@ -535,6 +536,11 @@ public class ClientManager implements MazeListener, Runnable{
 				clientsInfo.add(new ClientInfo(clientName, clientHostname, clientPort, clientID, clientPos, clientOrientation, clientScore));
 			}
 		}
+		
+		//add yo self to da list
+		myInfo.clientPos = guiClient.getPoint();
+		myInfo.clientOrientation = guiClient.getOrientation();
+		clientsInfo.add(myInfo);
 		
 		return clientsInfo;
 	}
