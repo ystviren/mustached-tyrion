@@ -354,18 +354,21 @@ public class ClientManager implements MazeListener, Runnable{
 							else if (newAction.action == MazewarPacket.CLIENT_FIRE) {
 								actionClient.fire();
 							}else if (newAction.action == MazewarPacket.CLIENT_JOIN){
-								// check if the client already exists:
-								RemoteClient newClient = remoteClientExists(newAction.source);
-								
-								if (newClient == null) {
-									// use a different constructor here because we don't need to open 
-									// a connection to the new client
-									newClient = new RemoteClient("need name", newAction.source, this);
-									remoteClients.add(newClient);
+								// prevent a client from joining on itself
+								if (newAction.source != ClientManager.player_number) {
+									// check if the client already exists:
+									RemoteClient newClient = remoteClientExists(newAction.source);
+									
+									if (newClient == null ) {
+										// use a different constructor here because we don't need to open 
+										// a connection to the new client
+										newClient = new RemoteClient("need name", newAction.source, this);
+										remoteClients.add(newClient);
+									}
+									
+									//place the client
+									maze.addRemoteClient(newClient, newAction.location, newAction.orientation);
 								}
-								
-								//place the client
-								maze.addRemoteClient(newClient, newAction.location, newAction.orientation);
 							}
 						}
 					}
