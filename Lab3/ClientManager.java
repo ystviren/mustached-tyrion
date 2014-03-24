@@ -375,14 +375,17 @@ public class ClientManager implements MazeListener, Runnable{
 					// append your new actions to the queue and send it along
 						
 					
-					System.out.println("Sending Packet");
+					//System.out.println("Sending Packet");
 					MazewarPacket test = new MazewarPacket();
 					//Event event = new Event(player_number, 0, null, null, MazewarPacket.CLIENT_TEST);
 					test.myInfo = myInfo;
 					test.type = MazewarPacket.RING_TOKEN;
 					// append
-					Client.actionQueue.addAll(Client.localQueue);
-					Client.localQueue.clear();
+					synchronized (Client.localQueue) {
+						Client.actionQueue.addAll(Client.localQueue);
+						Client.localQueue.clear();
+					}
+					
 					test.eventQueue = new ArrayList<Event>(Client.actionQueue);
 					// send dat
 					test.clientName = guiClient.getName();
