@@ -187,7 +187,9 @@ public class ClientManager implements MazeListener, Runnable{
 			// TODO: change this to use a packet object
 			System.out.println("Client manager's name is " + ClientManager.player_name);
 			outPacket.myInfo = new ClientInfo(ClientManager.player_name, local_hostname, local_port, ClientManager.player_number);
+			synchronized(remoteClients.get(0)){
 			remoteClients.get(0).writeObject(outPacket);
+			}
 			nextClient = remoteClients.get(0).getOutStream();
 		} else {
 			// the first player to join is recognized as the token holder
@@ -259,6 +261,7 @@ public class ClientManager implements MazeListener, Runnable{
 		// we need to send a packet to the new client with our new info
 		//maze.addClient(new RobotClient("bob"));
 		System.out.println("I AM ALIVE");
+
 		while (active) {
 
 			try {
@@ -330,14 +333,15 @@ public class ClientManager implements MazeListener, Runnable{
 					
 						Event newAction = null;
 						int i;
-						for (i = 0; i < Client.actionQueue.size(); i++) {
-							if (Client.actionQueue.get(i).source == ClientManager.player_number) {
-								newAction = Client.actionQueue.remove(i);
+						List<Event> tmp = new ArrayList<Event>(Client.actionQueue);
+						for (i = 0; i < tmp.size(); i++) {
+							if (tmp.get(i).source == ClientManager.player_number) {
+								Client.actionQueue.remove(tmp.get(i));
+								newAction = tmp.get(i);
 							} else {
 								newAction = Client.actionQueue.get(i);
 							}
-								
-							
+				
 							Client actionClient = getClient(newAction.source);
 							
 							if (newAction.action == MazewarPacket.CLIENT_FORWARD) {
@@ -386,7 +390,8 @@ public class ClientManager implements MazeListener, Runnable{
 					// append your new actions to the queue and send it along
 						
 					
-					//System.out.println("Sending Packet");
+					//System.out.println("Sending Packet count is " + count);
+
 					haveToken = false;
 					MazewarPacket test = new MazewarPacket();
 					//Event event = new Event(player_number, 0, null, null, MazewarPacket.CLIENT_TEST);
@@ -394,15 +399,18 @@ public class ClientManager implements MazeListener, Runnable{
 					test.type = MazewarPacket.RING_TOKEN;
 					// append
 					synchronized (Client.localQueue) {
+						synchronized (Client.actionQueue){
 						Client.actionQueue.addAll(Client.localQueue);
 						Client.localQueue.clear();
+						}
 					}
 					
 					test.eventQueue = new ArrayList<Event>(Client.actionQueue);
 					// send dat
 					test.clientName = guiClient.getName();
-					nextClient.writeObject(test);
-					
+					synchronized(nextClient){
+						nextClient.writeObject(test);
+					}
 					
 				}
 			    
@@ -486,7 +494,9 @@ public class ClientManager implements MazeListener, Runnable{
 		confirm.type = MazewarPacket.JOIN_CONFIRM;
 		confirm.clientName = player_name;
 		try {
+			synchronized (nextClient){
 			nextClient.writeObject(confirm);
+			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
