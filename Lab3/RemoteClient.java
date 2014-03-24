@@ -119,7 +119,7 @@ public class RemoteClient extends Client implements Runnable{
 				//System.out.println("Recieved Packet " + packetFromClient.type);
 				
 				/** process message **/
-			
+				MazewarPacket newPacket = new MazewarPacket();
 				
 				if (remotePacket.type == MazewarPacket.RING_TOKEN){
 					synchronized (Client.actionQueue){
@@ -142,8 +142,8 @@ public class RemoteClient extends Client implements Runnable{
 				}
 				else if (remotePacket.type == MazewarPacket.REQUEST_STATE){
 					// need to construct a packet containing all the locations, orientations and scores of everyone
-					MazewarPacket newPacket = new MazewarPacket();
-					newPacket.remoteList = manager.getAllClientInfo(this.getID());
+					
+					newPacket.remoteList = new ArrayList<ClientInfo>(manager.getAllClientInfo(this.getID()));
 					newPacket.type = MazewarPacket.REPLY_STATE;
 					
 					// send the list	

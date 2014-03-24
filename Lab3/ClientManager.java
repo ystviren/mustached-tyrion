@@ -538,9 +538,7 @@ public class ClientManager implements MazeListener, Runnable{
 		}
 		
 		//add yo self to da list
-		myInfo.clientPos = guiClient.getPoint();
-		myInfo.clientOrientation = guiClient.getOrientation();
-		clientsInfo.add(myInfo);
+		clientsInfo.add(new ClientInfo(myInfo.clientName, myInfo.clientHostname, myInfo.clientPort, myInfo.clientID, guiClient.getPoint(), guiClient.getOrientation(), guiClient.getClientScore(guiClient)));
 		
 		return clientsInfo;
 	}
