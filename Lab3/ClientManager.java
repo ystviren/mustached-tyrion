@@ -321,7 +321,7 @@ public class ClientManager implements MazeListener, Runnable{
 						// at this point we shold be synchronized.
 						maze.repositionRandom(guiClient);
 						Event event = new Event(guiClient.pID, 0, guiClient.getPoint(), guiClient.getOrientation(), MazewarPacket.CLIENT_JOIN);
-						
+						event.sourceName = guiClient.getName();
 						// add the join at the top of our queue of actions
 						Client.localQueue.add(0, event);
 						// we dont do the actions in the current queue because the client before us
@@ -367,7 +367,7 @@ public class ClientManager implements MazeListener, Runnable{
 									if (newClient == null ) {
 										// use a different constructor here because we don't need to open 
 										// a connection to the new client
-										newClient = new RemoteClient("need name", newAction.source, this);
+										newClient = new RemoteClient(newAction.sourceName, newAction.source, this);
 										remoteClients.add(newClient);
 									}
 									
