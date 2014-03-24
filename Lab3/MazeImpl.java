@@ -608,7 +608,7 @@ public class MazeImpl extends Maze implements Serializable, ClientListener, Runn
 			
 			System.out.println("Target id is " + target.getID());
 			// add the death as an event in the local queue
-			Event event = new Event(source.getID(), target.getID(), target.getPoint(), target.getOrientation(), MazewarPacket.CLIENT_KILLED);
+			Event event = new Event(target.getID(),source.getID(),  target.getPoint(), target.getOrientation(), MazewarPacket.CLIENT_KILLED);
 			synchronized (Client.localQueue){
 				Client.localQueue.add(event);
 			}
