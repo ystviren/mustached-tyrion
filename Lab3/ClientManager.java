@@ -185,6 +185,7 @@ public class ClientManager implements MazeListener, Runnable{
 			outPacket = new MazewarPacket();
 			outPacket.type = MazewarPacket.CLIENT_TEST;
 			// TODO: change this to use a packet object
+			System.out.println("Client manager's name is " + ClientManager.player_name);
 			outPacket.myInfo = new ClientInfo(ClientManager.player_name, local_hostname, local_port, ClientManager.player_number);
 			remoteClients.get(0).writeObject(outPacket);
 			nextClient = remoteClients.get(0).getOutStream();
@@ -385,7 +386,7 @@ public class ClientManager implements MazeListener, Runnable{
 					// append your new actions to the queue and send it along
 						
 					
-					System.out.println("Sending Packet");
+					//System.out.println("Sending Packet");
 					haveToken = false;
 					MazewarPacket test = new MazewarPacket();
 					//Event event = new Event(player_number, 0, null, null, MazewarPacket.CLIENT_TEST);

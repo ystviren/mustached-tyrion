@@ -245,7 +245,7 @@ public class ScoreTableModel implements TableModel, MazeListener {
         }
 
         private void notifyListeners() {
-        		System.out.println("new table entry!");
+        		//System.out.println("new table entry!");
                 Iterator i = listenerSet.iterator();
                 while (i.hasNext()) {
                         Object o = i.next();
