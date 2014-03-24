@@ -240,19 +240,25 @@ public class MazeImpl extends Maze implements Serializable, ClientListener, Runn
 		assert (o instanceof Point);
 		Point point = (Point) o;
 		CellImpl cell = getCellImpl(point);
-		cell.setContents(null);
+		
+		// only want to set cell content to null if we are the ones that were there
+		Object contents = cell.getContents();
+		if (contents != null) {
+			// If it is a Client, kill it outright
+			if (contents instanceof Client) {
+				// check if the client is us
+				Client tmpClient = (Client)contents;
+				if (tmpClient.getName().equals(client.getName())) {
+					cell.setContents(null);
+				}
+			}
+		}
 		
 		// Pick a random starting point, and check to see if it is already
 		// occupied
 
 		point = new Point(position.getX(), position.getY());
 		cell = getCellImpl(point);
-		// Repeat until we find an empty cell
-		while (cell.getContents() != null) {
-			ret = true; 
-			point = new Point(randomGen.nextInt(maxX), randomGen.nextInt(maxY));
-			cell = getCellImpl(point);
-		}
 		
 		Direction d = dir;
 
@@ -263,6 +269,47 @@ public class MazeImpl extends Maze implements Serializable, ClientListener, Runn
 		return ret;
 	}
 
+	
+	public boolean repositionRandom(Client client) {
+		boolean ret = false;
+		
+		Object o = clientMap.remove(client);
+		assert (o instanceof Point);
+		Point point = (Point) o;
+		CellImpl cell = getCellImpl(point);
+		
+		// only want to set cell content to null if we are the ones that were there
+		Object contents = cell.getContents();
+		if (contents != null) {
+			// If it is a Client, kill it outright
+			if (contents instanceof Client) {
+				// check if the client is us
+				Client tmpClient = (Client)contents;
+				if (tmpClient.getName().equals(client.getName())) {
+					cell.setContents(null);
+				}
+			}
+		}
+		
+		// Pick a random starting point, and check to see if it is already
+		// occupied
+
+		point = new Point(randomGen.nextInt(maxX), randomGen.nextInt(maxY));
+		cell = getCellImpl(point);
+		// Repeat until we find an empty cell
+		while (cell.getContents() != null) {
+			point = new Point(randomGen.nextInt(maxX), randomGen.nextInt(maxY));
+			cell = getCellImpl(point);
+		}
+		Direction d = Direction.random();
+
+		cell.setContents(client);
+		clientMap.put(client, new DirectedPoint(point, d));
+		update();
+		
+		return ret;
+	}
+	
 	public synchronized Point getClientPoint(Client client) {
 		assert (client != null);
 		Object o = clientMap.get(client);

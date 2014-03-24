@@ -24,20 +24,22 @@ public class ClientManager implements MazeListener, Runnable{
 	private static int player_number;
 	private static String player_name;
 	
+	private final Object lock = new Object();
 	
 	private final String lookupName;
 	private final int lookupPort;
 	
 	private ObjectOutputStream nextClient = null;
+	private ObjectOutputStream prevClient = null;
 	
 	private final Thread thread;
 	private boolean active = false;
 	
 	private ClientNetworkListener networkReceiver = null;
 	
-	private static boolean haveToken = false;
-	public static boolean needSync = true;
-	static ClientInfo myInfo;
+	private  boolean haveToken = false;
+	public boolean needSync = true;
+	ClientInfo myInfo;
 	
 	
 	public ClientManager(Maze maze, String LocalName, String local_hostname, int local_port, String lookup_hostname, int lookup_port) {
@@ -78,7 +80,6 @@ public class ClientManager implements MazeListener, Runnable{
 		// register with the lookup server
 		MazewarPacket outPacket = new MazewarPacket();
 		outPacket.type = MazewarPacket.CLIENT_REGISTER;
-		// TODO: change this to use a packet object
 		outPacket.myInfo = new ClientInfo(ClientManager.player_name, local_hostname, local_port, 0);
 		
 		try {
@@ -112,10 +113,9 @@ public class ClientManager implements MazeListener, Runnable{
 			e.printStackTrace();
 		}
 		
-		// TODO: SEND BYE PACKET TO NAME SERVER
+		//SEND BYE PACKET TO NAME SERVER
 		outPacket = new MazewarPacket();
 		outPacket.type = MazewarPacket.CLIENT_BYE;
-		// TODO: change this to use a packet object
 		outPacket.myInfo = new ClientInfo(ClientManager.player_name, local_hostname, local_port, 0);
 		try {
 			lookupOut.writeObject(outPacket);
@@ -153,13 +153,12 @@ public class ClientManager implements MazeListener, Runnable{
 			
 			// No longer creates output socket, preventing a new client from opening connections
 			// to all previously existing clients
-			RemoteClient tmpClient = new RemoteClient(tmpName, tmpHostname, tmpPort, tmpID);
+			RemoteClient tmpClient = new RemoteClient(tmpName, tmpHostname, tmpPort, tmpID, this);
 			
 			//guiClient.addClient(tmpClient.getOutStream());
 			
 			remoteClients.add(tmpClient);
-			
-			//maze.addClient(tmpClient);
+			maze.addClient(tmpClient);
 		}
 
 // setup server socket for receiving incoming connections
@@ -176,11 +175,11 @@ public class ClientManager implements MazeListener, Runnable{
 		if (remoteClients.size() > 0) {
 			outPacket = new MazewarPacket();
 			outPacket.type = MazewarPacket.CLIENT_REGISTER;
-			// TODO: change this to use a packet object
 			outPacket.myInfo = myInfo;
 			// we add ourselves to the "end" of the ring by notifying the last client to use us
 			// as his successor
 			remoteClients.get(remoteClients.size()-1).writeObject(outPacket);
+			prevClient = remoteClients.get(remoteClients.size()-1).getOutStream();
 			
 			// we set our successor to be first client in the list:
 			outPacket = new MazewarPacket();
@@ -193,10 +192,12 @@ public class ClientManager implements MazeListener, Runnable{
 			// the first player to join is recognized as the token holder
 			haveToken = true;
 			needSync = false;
-			// you can also place yourself be cause nobody else is on the board
-			ClientManager.maze.addClient(guiClient);
+			
 			//mazePanel.setVisible(true);
 		}
+		
+		// need to place yourself here to avoid errors during init
+		ClientManager.maze.addClient(guiClient);
 		
 		// start thread for broadcasting and processing command buffer
 		//System.out.println("Do I get here?");
@@ -260,7 +261,7 @@ public class ClientManager implements MazeListener, Runnable{
 		while (active) {
 
 			try {
-				if (nextClient == null){
+				if (nextClient == null){ // single player case
 					//System.out.println("no next connection");
 					// you are the only player, yay do w/e you want bro
 					
@@ -286,30 +287,51 @@ public class ClientManager implements MazeListener, Runnable{
 							actionClient.fire();
 						}
 					}
-				} else if (haveToken) {
+				} 
+				else if (haveToken) {
 					// process all the actions in the queue, removing any that belong to you:
 					if (needSync) {
-						// at this point we should have mirrored the state of predecessor
-						// so we can add ourselves
 						
-						maze.addClient(guiClient);
+						// prepare a packet with request for sync
 						
+						// send a packet to your predecessor to mirror his state
+						MazewarPacket newPacket = new MazewarPacket();
+						//Event event = new Event(player_number, 0, null, null, MazewarPacket.CLIENT_TEST);
+						newPacket.myInfo = myInfo;
+						newPacket.type = MazewarPacket.REQUEST_STATE;
+
+						newPacket.clientName = newPacket.myInfo.clientName;
+						
+						prevClient.writeObject(newPacket);
+						
+						try {
+							synchronized(lock) {
+								lock.wait();
+							}
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						
+						assert(!needSync);
+						
+						// at this point we shold be synchronized.
+						maze.repositionRandom(guiClient);
 						Event event = new Event(guiClient.pID, 0, guiClient.getPoint(), guiClient.getOrientation(), MazewarPacket.CLIENT_JOIN);
 						
 						// add the join at the top of our queue of actions
 						Client.localQueue.add(0, event);
-						
-						needSync = false;
 						// we dont do the actions in the current queue because the client before us
 						// already did them, and we mirrored their state.
-					} else if (Client.actionQueue != null) {
-					
+					}		
+						
+					else if ( (Client.actionQueue != null) ) {
 					
 						Event newAction = null;
 						int i;
 						for (i = 0; i < Client.actionQueue.size(); i++) {
 							
-							if (newAction.source == ClientManager.player_number) {
+							if (Client.actionQueue.get(i).source == ClientManager.player_number) {
 								newAction = Client.actionQueue.remove(i);
 							} else {
 								newAction = Client.actionQueue.get(i);
@@ -339,15 +361,12 @@ public class ClientManager implements MazeListener, Runnable{
 								if (newClient == null) {
 									// use a different constructor here because we don't need to open 
 									// a connection to the new client
-									newClient = new RemoteClient("need name", newAction.source);
+									newClient = new RemoteClient("need name", newAction.source, this);
 									remoteClients.add(newClient);
 								}
 								
 								//place the client
-								maze.addClient(newClient);
-								
-								maze.repositionClient(newClient, newAction.location, newAction.orientation);
-								
+								maze.addRemoteClient(newClient, newAction.location, newAction.orientation);
 							}
 						}
 					}
@@ -427,12 +446,13 @@ public class ClientManager implements MazeListener, Runnable{
 		String newHostname = packetFromRemote.myInfo.clientHostname;
 		int newPort = packetFromRemote.myInfo.clientPort;
 		int newID = packetFromRemote.myInfo.clientID;
+		// check if its in the list of clients already
 		RemoteClient newClient = remoteClientExists(newID);
 		
 		if (newClient == null) {
 			// use a different constructor here because we don't need to open 
 			// a connection to the new client
-			newClient = new RemoteClient(newName, newHostname, newPort, newID);
+			newClient = new RemoteClient(newName, newHostname, newPort, newID, this);
 			remoteClients.add(newClient);
 		}
 		
@@ -470,12 +490,12 @@ public class ClientManager implements MazeListener, Runnable{
 		return null;
 	}
 
-	public static void setToken() {
+	public void setToken() {
 		// TODO Auto-generated method stub
-		ClientManager.haveToken = true;
+		haveToken = true;
 	}
 
-	public static void syncrhonizeClients(ArrayList<ClientInfo> remoteList) {
+	public void syncrhonizeClients(ArrayList<ClientInfo> remoteList) {
 		// TODO Auto-generated method stub
 		// assuming we are given a complete list of clients, we force the 
 		// local state of clients to mirror the state of the input list
@@ -491,6 +511,31 @@ public class ClientManager implements MazeListener, Runnable{
 				}
 			}
 		}
+		synchronized(lock) {
+			lock.notify();
+		}
 	}
-	
+
+	// create a list of ClientInfo objects for each remote client
+	public ArrayList<ClientInfo> getAllClientInfo(int skipID) {
+		ArrayList<ClientInfo> clientsInfo = new ArrayList<ClientInfo>();
+		
+		int i;
+		for (i = 0; i < remoteClients.size(); i++) {
+			int clientID = remoteClients.get(i).getID();
+			if (clientID != skipID) {
+				String clientName = remoteClients.get(i).getName();
+				String clientHostname = null;
+				int clientPort = 0;
+				
+				Point clientPos = remoteClients.get(i).getPoint();
+				Direction clientOrientation = remoteClients.get(i).getOrientation();
+				int clientScore = remoteClients.get(i).getClientScore(remoteClients.get(i));
+				
+				clientsInfo.add(new ClientInfo(clientName, clientHostname, clientPort, clientID, clientPos, clientOrientation, clientScore));
+			}
+		}
+		
+		return clientsInfo;
+	}
 }

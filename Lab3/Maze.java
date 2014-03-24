@@ -66,6 +66,8 @@ public abstract class Maze {
     // moves the specified client to the specified position with specified direction
     public abstract boolean repositionClient(Client client, Point position, Direction dir);
     
+    public abstract boolean repositionRandom(Client client);
+    
     // public interface to notifyClientKilled 
     public abstract void notifyKill(Client source, Client target);
 

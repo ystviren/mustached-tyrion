@@ -44,25 +44,28 @@ public class RemoteClient extends Client implements Runnable{
 	private String hostname;
 	private int port;
 	
+	private static ClientManager manager;
 	
     /**
      * Create a remotely controlled {@link Client}.
      * @param name Name of this {@link RemoteClient}.
      */
-    public RemoteClient(String name, String hostname, int port, int ID) {
+    public RemoteClient(String name, String hostname, int port, int ID, ClientManager manager) {
             super(name, ID);
-            
+            this.manager = manager;
             this.hostname = hostname;
 			this.port = port;
 			            
     		thread = new Thread(this);	
     }
 
-    public RemoteClient(String name, int ID) {
+    public RemoteClient(String name, int ID, ClientManager manager) {
         super(name, ID);
+        this.manager = manager;
 		thread = new Thread(this);	
 }
 
+    // this function assumes hostname and port are already filled in
 	public void writeObject(MazewarPacket outPacket) {
 		// TODO Auto-generated method stub
 		if (outSocket == null) {
@@ -122,64 +125,34 @@ public class RemoteClient extends Client implements Runnable{
 					synchronized (Client.actionQueue){
 						// need to clear everything in the action queue
 						Client.actionQueue = new ArrayList<Event>(remotePacket.eventQueue);
-	
+						manager.setToken();
 					}
-
-					if (ClientManager.needSync) {
-						// send a packet to your predecessor to mirror his state
-						MazewarPacket newPacket = new MazewarPacket();
-						//Event event = new Event(player_number, 0, null, null, MazewarPacket.CLIENT_TEST);
-						newPacket.myInfo = ClientManager.myInfo;
-						newPacket.type = MazewarPacket.REQUEST_STATE;
-
-						newPacket.clientName = newPacket.myInfo.clientName;
-						
-						writeObject(newPacket);
-						
-						// get response
-						remotePacket = (MazewarPacket)myIn.readObject();
-						
-						// update state
-
-						if (remotePacket.type == MazewarPacket.REPLY_STATE){
-							// need to construct a packet containing all the locations, orientations and scores of everyone
-							ClientManager.syncrhonizeClients(remotePacket.remoteList);	
-						}
-					}					
-					
-					//Set execution flag
-					ClientManager.setToken();
-				}else if (remotePacket.type == MazewarPacket.CLIENT_REGISTER){
+				}
+				else if (remotePacket.type == MazewarPacket.CLIENT_REGISTER){
 					//TODO player join logic
-				}else if (remotePacket.type == MazewarPacket.CLIENT_BYE){
+				}
+				else if (remotePacket.type == MazewarPacket.CLIENT_BYE){
 					//TODO change connection to maintain ring
-				}else if(remotePacket.type == MazewarPacket.CLIENT_TEST){
+				}
+				else if(remotePacket.type == MazewarPacket.CLIENT_TEST){
 					System.out.println("Recieved packeted from " + remotePacket.clientName);
-				}else if (remotePacket.type == MazewarPacket.JOIN_CONFIRM){
+				}
+				else if (remotePacket.type == MazewarPacket.JOIN_CONFIRM){
 					System.out.println("Recieved join confirm from " + remotePacket.clientName);
-				}else if (remotePacket.type == MazewarPacket.REQUEST_STATE){
+				}
+				else if (remotePacket.type == MazewarPacket.REQUEST_STATE){
 					// need to construct a packet containing all the locations, orientations and scores of everyone
 					MazewarPacket newPacket = new MazewarPacket();
-					newPacket.remoteList = new ArrayList<ClientInfo>();
+					newPacket.remoteList = manager.getAllClientInfo(this.getID());
 					newPacket.type = MazewarPacket.REPLY_STATE;
-					Iterator clientIt = maze.getClients();
 					
-					while (clientIt.hasNext()) {
-						Client tmpClient = (Client)clientIt.next();
-						String clientName = tmpClient.getName();
-						String clientHostname = null;
-						int clientPort = 0;
-						int clientID = tmpClient.getID();
-						Point clientPos = tmpClient.getPoint();
-						Direction clientOrientation = tmpClient.getOrientation();
-						int clientScore = tmpClient.getClientScore(tmpClient);
-						
-						
-						newPacket.remoteList.add(new ClientInfo(clientName, clientHostname, clientPort, clientID, clientPos, clientOrientation, clientScore));
-					}
 					// send the list	
 					writeObject(newPacket);
 				
+				}
+				else if (remotePacket.type == MazewarPacket.REPLY_STATE){
+					// pass list to manager and let it update stuff
+					manager.syncrhonizeClients(remotePacket.remoteList);
 				}
 				else {
 					System.out.println("Unknown packet type" + remotePacket.type);
