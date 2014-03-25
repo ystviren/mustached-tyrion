@@ -1,0 +1,9 @@
+Alan Cheung 997632593
+Andre Pinto 997509325
+
+To run the code, first start up the nameServer with server.sh ${port number}
+
+After the name server is running, run the client with run.sh
+The client will ask for it's name and port to listen on, as well as for the name server and port.
+
+The code supports dynamic joining, however there is an occasional null pointer exception which will freeze the entire system.
