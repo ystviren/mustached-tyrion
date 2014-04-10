@@ -17,6 +17,7 @@ public class ClientDriver {
 	static Socket JobServer = null;
 	static ObjectOutputStream out = null;
 	static ObjectInputStream in = null;
+	Boolean active = true;
 	
 	public static void main(String[] args) throws IOException,
 			ClassNotFoundException {
@@ -47,11 +48,16 @@ public class ClientDriver {
 		String userInput;
 		System.out.print("Enter queries or x for exit:\n");
 		System.out.print(">");
+		// Here we assume that ANYTHING the user inputs that is not an x is a job request
+		// When the jobTracker receives the request, it will determine if a duplicate exists,
+		// in which case it treats the request as a querry and returns the state of the job
+		// otherwise it goes ahead with processing a new job request
 		while ((userInput = stdIn.readLine()) != null
 				&& userInput.toLowerCase().indexOf("x") == -1) {
 			/* make a new request packet */
 			JobTrackerPacket packetToServer = new JobTrackerPacket();
 			packetToServer.type = JobTrackerPacket.JOB_REQUEST;
+			packetToServer.hash = userInput;
 			out.writeObject(packetToServer);
 
 			/* print server reply */
@@ -59,9 +65,18 @@ public class ClientDriver {
 			packetFromServer = (JobTrackerPacket) in.readObject();
 
 			if (packetFromServer.type == JobTrackerPacket.REPLY_REQUEST) {
-				System.out.println("replied to request");
+				if (packetFromServer.error_code == 0) {
+					System.out.println("New job request submitted");
+				} else {
+					System.out.println("Invalid job request");
+				}
 			} else if (packetFromServer.type == JobTrackerPacket.REPLY_QUERRY) {
-				System.out.println("replied to querry");
+				if (packetFromServer.error_code == 0) {
+					System.out.println("Job Querry");
+					System.out.println(packetFromServer.status);
+				} else {
+					System.out.println("Invalid job querry");
+				}
 			}
 			/* re-print console prompt */
 			System.out.print(">");
@@ -124,13 +139,40 @@ public class ClientDriver {
         EventType type = event.getType();
         if(path.equalsIgnoreCase("/jobTrack")) {
             if (type == EventType.NodeDeleted) {
-                System.out.println("/jobTrack" + " deleted! Let's go!");       
-                checkpath(); // try to become the boss
+            	
+            	// close the connections
+            	try {
+					out.close();
+					in.close();
+	        		JobServer.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+        		
+            	active = false;
+            	
             }
             if (type == EventType.NodeCreated) {
-                System.out.println("/jobTrack" + " created!");       
-                try{ Thread.sleep(5000); } catch (Exception e) {}
-                checkpath(); // re-enable the watch
+            	
+            	// connect to the new jobtrack node
+            	// get the jobserver
+        		String[] jobServerInfo = checkpath().split(":");
+        		String jobHost = jobServerInfo[0];
+        		int jobPort = Integer.parseInt(jobServerInfo[1]);
+        		
+        		// need to get jobserver connection info
+        		try {
+					JobServer = new Socket(jobHost, jobPort);
+	        		out = new ObjectOutputStream(JobServer.getOutputStream());
+	        		in = new ObjectInputStream(JobServer.getInputStream());
+				} catch (UnknownHostException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
             }
         }
     }

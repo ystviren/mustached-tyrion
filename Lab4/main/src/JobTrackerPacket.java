@@ -15,8 +15,7 @@ public class JobTrackerPacket {
 	
 	/* message header */
 	public int type = JobTrackerPacket.PACKET_NULL;
-	
+	public String hash = null;
+	public String status = null;
 	public int error_code;
-	
-	public String hash;
 }
