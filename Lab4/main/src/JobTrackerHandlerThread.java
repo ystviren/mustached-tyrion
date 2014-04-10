@@ -63,7 +63,7 @@ public class JobTrackerHandlerThread extends Thread {
 							try {
 								byte[] nodeData = theZoo.getData(path, null, theZoo.exists(path, null));
 								
-								packetToClient.status = nodeData.toString();
+								packetToClient.status = new String(nodeData);
 							} catch (KeeperException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
