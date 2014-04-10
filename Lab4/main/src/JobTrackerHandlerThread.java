@@ -97,14 +97,20 @@ public class JobTrackerHandlerThread extends Thread {
 					packetToClient.type = JobTrackerPacket.REPLY_REQUEST;
 					toClient.writeObject(packetToClient);
 					
-				} else if (packetFromClient.type == JobTrackerPacket.JOB_QUERRY) {
-					// handle querry
+				} else if (packetFromClient.type == JobTrackerPacket.CLIENT_BYE) {
+					gotByePacket = true;
 				} 
 				
 			}
+			
+			/* cleanup when client exits */
+			fromClient.close();
+			toClient.close();
+			mySocket.close();
 		} catch (IOException e) {
-			if(!gotByePacket)
-				e.printStackTrace();
+			if(!gotByePacket) {
+				System.out.println("Client crashed unexpectedly.");
+			}
 		} catch (ClassNotFoundException e) {
 			if(!gotByePacket)
 				e.printStackTrace();
