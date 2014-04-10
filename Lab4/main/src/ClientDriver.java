@@ -14,9 +14,9 @@ public class ClientDriver {
 	ZkConnector zkc;
 	Watcher watcher;
 	ZooKeeper theZoo = null;
-	static Socket JobServer = null;
-	static ObjectOutputStream out = null;
-	static ObjectInputStream in = null;
+	Socket JobServer = null;
+	ObjectOutputStream out = null;
+	ObjectInputStream in = null;
 	Boolean active = true;
 	
 	public static void main(String[] args) throws IOException,
@@ -39,10 +39,10 @@ public class ClientDriver {
 		int jobPort = Integer.parseInt(jobServerInfo[1]);
 		
 		// need to get jobserver connection info
-		JobServer = new Socket(jobHost, jobPort);
+		client.JobServer = new Socket(jobHost, jobPort);
 
-		out = new ObjectOutputStream(JobServer.getOutputStream());
-		in = new ObjectInputStream(JobServer.getInputStream());
+		client.out = new ObjectOutputStream(client.JobServer.getOutputStream());
+		client.in = new ObjectInputStream(client.JobServer.getInputStream());
 			
 		BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
 		String userInput;
