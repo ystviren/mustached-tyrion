@@ -1,41 +1,48 @@
 import java.io.*;
 import java.net.*;
 
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.KeeperException.Code;
+import org.apache.zookeeper.Watcher.Event.EventType;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.Stat;
+
 public class ClientDriver {
+	ZkConnector zkc;
+	Watcher watcher;
+	ZooKeeper theZoo = null;
+	static Socket JobServer = null;
+	static ObjectOutputStream out = null;
+	static ObjectInputStream in = null;
+	
 	public static void main(String[] args) throws IOException,
 			ClassNotFoundException {
 
-		Socket JobServer = null;
-		ObjectOutputStream out = null;
-		ObjectInputStream in = null;
-
-		// set up config objects inside try
-		try {
-			/* variables for hostname/port */
-            // default values
-			String hostname = "localhost";
-			int port = 4444;
-			
-			if(args.length == 2 ) { //get config from command line
-				hostname = args[0];
-				port = Integer.parseInt(args[1]);
-			} else {
-				System.err.println("ERROR: Invalid arguments!");
-				System.exit(-1);
-			}
-			BrokerSocket = new Socket(hostname, port);
-
-			out = new ObjectOutputStream(BrokerSocket.getOutputStream());
-			in = new ObjectInputStream(BrokerSocket.getInputStream());
-
-		} catch (UnknownHostException e) {
-			System.err.println("ERROR: Don't know where to connect!!");
-			System.exit(1);
-		} catch (IOException e) {
-			System.err.println("ERROR: Couldn't get I/O for the connection.");
-			System.exit(1);
+		String zooInfo = null;
+				
+		if(args.length == 1 ) { //get config from command line
+			zooInfo = args[0];
+		} else {
+			System.err.println("ERROR: Invalid arguments!");
+			System.exit(-1);
 		}
+		
+		// connect to zookeeper to 
+		ClientDriver client = new ClientDriver(zooInfo);
+		// get the jobserver
+		String[] jobServerInfo = checkpath().split(":");
+		String jobHost = jobServerInfo[0];
+		int jobPort = Integer.parseInt(jobServerInfo[1]);
+		
+		// need to get jobserver connection info
+		JobServer = new Socket(jobHost, jobPort);
 
+		out = new ObjectOutputStream(JobServer.getOutputStream());
+		in = new ObjectInputStream(JobServer.getInputStream());
+			
 		BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
 		String userInput;
 		System.out.print("Enter queries or x for exit:\n");
@@ -43,16 +50,15 @@ public class ClientDriver {
 		while ((userInput = stdIn.readLine()) != null
 				&& userInput.toLowerCase().indexOf("x") == -1) {
 			/* make a new request packet */
-			BrokerPacket packetToServer = new BrokerPacket();
-			packetToServer.type = BrokerPacket.BROKER_REQUEST;
-			packetToServer.symbol = userInput;
+			JobTrackerPacket packetToServer = new JobTrackerPacket();
+			packetToServer.type = JobTrackerPacket.JOB_REQUEST;
 			out.writeObject(packetToServer);
 
 			/* print server reply */
-			BrokerPacket packetFromServer;
-			packetFromServer = (BrokerPacket) in.readObject();
+			JobTrackerPacket packetFromServer;
+			packetFromServer = (JobTrackerPacket) in.readObject();
 
-			if (packetFromServer.type == BrokerPacket.BROKER_QUOTE)
+			if (packetFromServer.type == JobTrackerPacket.BROKER_QUOTE)
 				System.out.println("Quote from broker: " + packetFromServer.quote);
 
 			/* re-print console prompt */
@@ -60,14 +66,70 @@ public class ClientDriver {
 		}
 
 		/* tell server that i'm quitting */
-		BrokerPacket packetToServer = new BrokerPacket();
-		packetToServer.type = BrokerPacket.BROKER_BYE;
+		JobTrackerPacket packetToServer = new JobTrackerPacket();
+		packetToServer.type = JobTrackerPacket.CLIENT_BYE;
 		//packetToServer.message = "Bye!";
 		out.writeObject(packetToServer);
 
 		out.close();
 		in.close();
 		stdIn.close();
-		BrokerSocket.close();
+		JobServer.close();
 	}
+	
+	public ClientDriver(String hosts) {
+        zkc = new ZkConnector();
+        try {
+            zkc.connect(hosts);
+        } catch(Exception e) {
+            System.out.println("Zookeeper connect "+ e.getMessage());
+        }
+ 
+        theZoo = zkc.getZooKeeper();
+        
+        watcher = new Watcher() { // Anonymous Watcher
+                            @Override
+                            public void process(WatchedEvent event) {
+                                handleEvent(event);
+                        
+                            } };
+                            
+                            
+    }
+    
+    private static String checkpath() {
+    	String jobServerInfo = null;
+    	// first check that the jobtrack node exists
+        Stat stat = zkc.exists("/jobTrack", watcher);
+        if (stat != null) {              // znode exist;         	
+        	try {
+        		// get the data
+				jobServerInfo = new String(theZoo.getData("/jobTrack", false, stat));
+			} catch (KeeperException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        } 
+        
+        return jobServerInfo;
+    }
+
+    private void handleEvent(WatchedEvent event) {
+        String path = event.getPath();
+        EventType type = event.getType();
+        if(path.equalsIgnoreCase("/jobTrack")) {
+            if (type == EventType.NodeDeleted) {
+                System.out.println("/jobTrack" + " deleted! Let's go!");       
+                checkpath(); // try to become the boss
+            }
+            if (type == EventType.NodeCreated) {
+                System.out.println("/jobTrack" + " created!");       
+                try{ Thread.sleep(5000); } catch (Exception e) {}
+                checkpath(); // re-enable the watch
+            }
+        }
+    }
 }
