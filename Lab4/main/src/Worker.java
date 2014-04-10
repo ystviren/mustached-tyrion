@@ -56,11 +56,8 @@ public class Worker {
 		String fsHost = fileServerInfo[0];
 		int fsPort = Integer.parseInt(fileServerInfo[1]);
 
-		t.FSSocket = new Socket(fsHost, fsPort);
-
-		t.out = new ObjectOutputStream(t.FSSocket.getOutputStream());
-		t.in = new ObjectInputStream(t.FSSocket.getInputStream());
 		try {
+			System.out.println("Starting jobs");
 			while (true) {
 				Stat tmp = t.zkc.exists("/jobs", null);
 				Stat tmp2 = new Stat();
@@ -73,10 +70,17 @@ public class Worker {
 						//TODO: grab some kind of lock???
 						String tmpString = new String (t.zookeeper.getData("/jobs/"+list.get(i), false, tmp2));
 						if (tmpString.equals("pending")){
+							System.out.println("Doing job " + list.get(i));
 							ArrayList<String> listJobs = new ArrayList<String>(t.zookeeper.getChildren("/jobs/"+list.get(i), false));
 							for (int j = 0; j < listJobs.size(); j++){
 								if (t.zookeeper.getData("/jobs/"+list.get(i)+"/"+listJobs.get(j), false, null) == null){
+									t.FSSocket = new Socket(fsHost, fsPort);
+									t.out = new ObjectOutputStream(t.FSSocket.getOutputStream());
+									t.in = new ObjectInputStream(t.FSSocket.getInputStream());
 									t.hashMatch(list.get(i), j, t);
+									t.out.close();
+									t.in.close();
+									t.FSSocket.close();
 								}
 							}
 						}
@@ -101,11 +105,12 @@ public class Worker {
 		
 		toFs.type = FileServerPacket.FILE_REQUEST;
 		toFs.partition = partition;
-		
+		System.out.println("Doing hashMatch " + hash);
 		
 		try {
 			worker.out.writeObject(toFs);
 			fromFs = (FileServerPacket) worker.in.readObject();
+			System.out.println("Doing welp " + hash);
 			for (int i = 0; i < fromFs.words.size(); i++){
 				//get hash for each function
 				if(MD5Test.getHash(fromFs.words.get(i)).equals(hash)){

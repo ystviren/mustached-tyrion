@@ -29,13 +29,20 @@ public class FileServerHandlerThread extends Thread {
 			ObjectOutputStream toClient = new ObjectOutputStream(mySocket.getOutputStream());
 			
 			while (( packetFromClient = (FileServerPacket) fromClient.readObject()) != null) {
-				
+				System.out.println("Received packet");
 				if (packetFromClient.type == FileServerPacket.FILE_REQUEST) {
 					FileServerPacket packetToClient = new FileServerPacket();
 					packetToClient.type = FileServerPacket.REPLY_REQUEST;
 					packetToClient.words = new ArrayList<String>(wordList.get(packetFromClient.partition));
+					toClient.writeObject(packetToClient);
+					break;
 				}
 			}
+			
+			fromClient.close();
+			toClient.close();
+			mySocket.close();
+			
 		} catch (IOException e) {
 			if(!gotByePacket)
 				e.printStackTrace();
