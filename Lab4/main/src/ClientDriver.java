@@ -18,12 +18,11 @@ public class ClientDriver {
 	ObjectOutputStream out = null;
 	ObjectInputStream in = null;
 	Boolean active = true;
+	JobTrackerPacket lastReq = null;
 	
-	public static void main(String[] args) throws IOException,
-			ClassNotFoundException {
-
-		String zooInfo = null;
-				
+	public static void main(String[] args) throws IOException, ClassNotFoundException {
+		// zookeeper connection info
+		String zooInfo = null;		
 		if(args.length == 1 ) { //get config from command line
 			zooInfo = args[0];
 		} else {
@@ -31,16 +30,13 @@ public class ClientDriver {
 			System.exit(-1);
 		}
 		
-		// connect to zookeeper to 
+		// connect to zookeeper 
 		ClientDriver client = new ClientDriver(zooInfo);
-		// get the jobserver
-		String[] jobServerInfo = client.checkpath().split(":");
-		String jobHost = jobServerInfo[0];
-		int jobPort = Integer.parseInt(jobServerInfo[1]);
+		// get the jobserver info
+		String[] jobTrackerInfo = client.checkpath().split(":");
 		
 		// need to get jobserver connection info
-		client.JobServer = new Socket(jobHost, jobPort);
-
+		client.JobServer = new Socket(jobTrackerInfo[0], Integer.parseInt(jobTrackerInfo[1]));
 		client.out = new ObjectOutputStream(client.JobServer.getOutputStream());
 		client.in = new ObjectInputStream(client.JobServer.getInputStream());
 			
@@ -52,40 +48,43 @@ public class ClientDriver {
 		// When the jobTracker receives the request, it will determine if a duplicate exists,
 		// in which case it treats the request as a querry and returns the state of the job
 		// otherwise it goes ahead with processing a new job request
-		while ((userInput = stdIn.readLine()) != null
-				&& userInput.toLowerCase().indexOf("x") == -1) {
-			/* make a new request packet */
-			JobTrackerPacket packetToServer = new JobTrackerPacket();
-			packetToServer.type = JobTrackerPacket.JOB_REQUEST;
-			packetToServer.hash = userInput;
-			client.out.writeObject(packetToServer);
-
-			/* print server reply */
-			JobTrackerPacket packetFromServer;
-			packetFromServer = (JobTrackerPacket) client.in.readObject();
-
-			if (packetFromServer.type == JobTrackerPacket.REPLY_REQUEST) {
-				if (packetFromServer.error_code == 0) {
-					System.out.println("New job request submitted");
-				} else {
-					System.out.println("Invalid job request");
+		while ((userInput = stdIn.readLine()) != null && userInput.toLowerCase().indexOf("x") == -1) {
+			if (client.active) { // naive error handling that simply ignores user input until a new connection is established
+								 // ideally would just buffer requests and send batch when new connection occurs
+				/* make a new request packet */
+				JobTrackerPacket packetToServer = new JobTrackerPacket();
+				packetToServer.type = JobTrackerPacket.JOB_REQUEST;
+				packetToServer.hash = userInput;
+				// save packet for failure handling
+				client.lastReq = packetToServer;
+				
+				client.out.writeObject(packetToServer);
+	
+				/* server reply */
+				JobTrackerPacket packetFromServer = (JobTrackerPacket) client.in.readObject();
+	
+				if (packetFromServer.type == JobTrackerPacket.REPLY_REQUEST) {
+					if (packetFromServer.error_code == 0) {
+						System.out.println("New job request submitted");
+					} else {
+						System.out.println("Invalid job request");
+					}
+				} else if (packetFromServer.type == JobTrackerPacket.REPLY_QUERRY) {
+					if (packetFromServer.error_code == 0) {
+						System.out.println("Job Querry");
+						System.out.println(packetFromServer.status);
+					} else {
+						System.out.println("Invalid job querry");
+					}
 				}
-			} else if (packetFromServer.type == JobTrackerPacket.REPLY_QUERRY) {
-				if (packetFromServer.error_code == 0) {
-					System.out.println("Job Querry");
-					System.out.println(packetFromServer.status);
-				} else {
-					System.out.println("Invalid job querry");
-				}
+				/* re-print console prompt */
+				System.out.print(">");
 			}
-			/* re-print console prompt */
-			System.out.print(">");
 		}
 
 		/* tell server that i'm quitting */
 		JobTrackerPacket packetToServer = new JobTrackerPacket();
 		packetToServer.type = JobTrackerPacket.CLIENT_BYE;
-		//packetToServer.message = "Bye!";
 		client.out.writeObject(packetToServer);
 
 		client.out.close();
@@ -114,14 +113,16 @@ public class ClientDriver {
                             
     }
     
+	// looks for the /jobTrack node and gets its data
     private String checkpath() {
     	String jobServerInfo = null;
+    	
     	// first check that the jobtrack node exists
         Stat stat = zkc.exists("/jobTrack", watcher);
         if (stat != null) {              // znode exist;         	
         	try {
         		// get the data
-				jobServerInfo = new String(theZoo.getData("/jobTrack", false, stat));
+				jobServerInfo = new String(theZoo.getData("/jobTrack", watcher, stat));
 			} catch (KeeperException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -166,6 +167,10 @@ public class ClientDriver {
 					JobServer = new Socket(jobHost, jobPort);
 	        		out = new ObjectOutputStream(JobServer.getOutputStream());
 	        		in = new ObjectInputStream(JobServer.getInputStream());
+	        		active = true;
+	        		
+	        		// resend the last packet? 
+	        		
 				} catch (UnknownHostException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();

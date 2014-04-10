@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.util.List;
 
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -18,17 +19,17 @@ public class JobTracker {
     Watcher watcher;
     String myInfo = null;   
     ZooKeeper theZoo = null;
-	
+    boolean listening = false;
+    
 	public static void main(String[] args) throws IOException {
+		
         ServerSocket mySocket = null;
         String zooInfo = null;
-        
-        boolean listening = true;
 
         try {
         	if(args.length == 2) {
+        		// set up our server socket
         		mySocket = new ServerSocket(Integer.parseInt(args[0]));
-        		zooInfo = args[1];
         	} else {
         		System.err.println("ERROR: Invalid arguments!");
         		System.exit(-1);
@@ -38,17 +39,25 @@ public class JobTracker {
             System.exit(-1);
         }
         
+        // format: localhost:port        
+        zooInfo = args[1];
+        // format: localhost:port
         String myInfo = InetAddress.getLocalHost().getHostName() + ":" + args[0];
         
-        JobTracker t = new JobTracker(args[1], myInfo);   
-        
-        t.checkpath();       
+        // connect to zookeeper
+        JobTracker tracker = new JobTracker(zooInfo, myInfo);   
+        // set up znode
+        tracker.checkpath();       
 
-        while (listening) {
-        	new JobTrackerHandlerThread(mySocket.accept(), t.theZoo, t.zkc).start();
+        while (true) {
+        	if (tracker.listening) { // we are the primary
+        		new JobTrackerHandlerThread(mySocket.accept(), tracker.theZoo, tracker.zkc).start();
+        	} else { // we are the secondary
+        		try{ Thread.sleep(5000); } catch (Exception e) {}
+        	}
         }
 
-        mySocket.close();
+        //mySocket.close();
     }
 	
 	
@@ -71,18 +80,25 @@ public class JobTracker {
                             } };
     }
     
-    private void checkpath() {
+	// try to create znode and become primary. if we fail, become secondary
+    private boolean checkpath() {
+    	boolean result = false;
         Stat stat = zkc.exists(myPath, watcher);
         if (stat == null) {              // znode doesn't exist; let's try creating it        	
-        	
+   
             System.out.println("Creating " + myPath);
             Code ret = zkc.create(
                         myPath,         // Path of znode
                         myInfo,           // Data not needed.
                         CreateMode.EPHEMERAL   // Znode type, set to EPHEMERAL.
                         );
-            if (ret == Code.OK) System.out.println("the boss!");
+            if (ret == Code.OK) {
+            	System.out.println("the boss!");
+            	listening = true;
+            	result = true;
+            }
         } 
+        return result;
     }
 
     private void handleEvent(WatchedEvent event) {
@@ -91,7 +107,42 @@ public class JobTracker {
         if(path.equalsIgnoreCase(myPath)) {
             if (type == EventType.NodeDeleted) {
                 System.out.println(myPath + " deleted! Let's go!");       
-                checkpath(); // try to become the boss
+                if (checkpath()) { // try to become the boss
+                	// now we need to go through all the nodes under /jobs to check for consistency
+                	List<String> jobsList = null;
+					try {
+						jobsList = theZoo.getChildren("/jobs", null);
+					} catch (KeeperException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					
+					// check if the job request already exists:
+					int i;
+					for (i = 0; i < jobsList.size(); i++) {
+						// for each child, check that it has 16 children
+						List<String> temp = null;
+						try {
+							temp = theZoo.getChildren(jobsList.get(i), null);
+						} catch (KeeperException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						if (temp.size() < 16) {
+							int j;
+							for (j = temp.size(); j < 16; j++) {
+								zkc.create( ("/jobs/"+jobsList.get(i)+"/"+String.valueOf(j)), null, CreateMode.EPHEMERAL);
+							}
+						}
+					}
+                }
+                
             }
             if (type == EventType.NodeCreated) {
                 System.out.println(myPath + " created!");       
