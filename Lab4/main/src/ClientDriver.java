@@ -58,11 +58,11 @@ public class ClientDriver {
 			JobTrackerPacket packetToServer = new JobTrackerPacket();
 			packetToServer.type = JobTrackerPacket.JOB_REQUEST;
 			packetToServer.hash = userInput;
-			out.writeObject(packetToServer);
+			client.out.writeObject(packetToServer);
 
 			/* print server reply */
 			JobTrackerPacket packetFromServer;
-			packetFromServer = (JobTrackerPacket) in.readObject();
+			packetFromServer = (JobTrackerPacket) client.in.readObject();
 
 			if (packetFromServer.type == JobTrackerPacket.REPLY_REQUEST) {
 				if (packetFromServer.error_code == 0) {
@@ -86,12 +86,12 @@ public class ClientDriver {
 		JobTrackerPacket packetToServer = new JobTrackerPacket();
 		packetToServer.type = JobTrackerPacket.CLIENT_BYE;
 		//packetToServer.message = "Bye!";
-		out.writeObject(packetToServer);
+		client.out.writeObject(packetToServer);
 
-		out.close();
-		in.close();
+		client.out.close();
+		client.in.close();
 		stdIn.close();
-		JobServer.close();
+		client.JobServer.close();
 	}
 	
 	public ClientDriver(String hosts) {
