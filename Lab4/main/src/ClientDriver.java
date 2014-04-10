@@ -61,7 +61,7 @@ public class ClientDriver {
 		// in which case it treats the request as a querry and returns the state of the job
 		// otherwise it goes ahead with processing a new job request
 		try {
-			while ((userInput = stdIn.readLine()) != null && userInput.toLowerCase().indexOf("x") == -1) {
+			while ((userInput = stdIn.readLine()) != null && !userInput.toLowerCase().equals("x")) {
 				if (client.active) { // naive error handling that simply ignores user input until a new connection is established
 									 // ideally would just buffer requests and send batch when new connection occurs
 					/* make a new request packet */
@@ -178,7 +178,7 @@ public class ClientDriver {
         EventType type = event.getType();
         if(path.equalsIgnoreCase("/jobTrack")) {
             if (type == EventType.NodeDeleted) {
-            	System.out.println("/jobTrack" + " deleted!");
+            	//System.out.println("/jobTrack" + " deleted!");
             	// close the connections
             	try {
 					out.close();
@@ -196,7 +196,7 @@ public class ClientDriver {
             	
             }
             if (type == EventType.NodeCreated) {
-            	System.out.println("/jobTrack" + " created!");
+            	//System.out.println("/jobTrack" + " created!");
             	// connect to the new jobtrack node
             	// get the jobserver
         		String[] jobServerInfo = checkpath().split(":");
