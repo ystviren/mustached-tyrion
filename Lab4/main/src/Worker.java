@@ -76,7 +76,7 @@ public class Worker {
 							ArrayList<String> listJobs = new ArrayList<String>(t.zookeeper.getChildren("/jobs/"+list.get(i), false));
 							for (int j = 0; j < listJobs.size(); j++){
 								if (t.zookeeper.getData("/jobs/"+list.get(i)+"/"+listJobs.get(j), false, null) == null){
-									
+									System.out.println("Looking at " + list.get(i) + "with parition " + j);
 									t.hashMatch(list.get(i), j, t);
 
 								}
