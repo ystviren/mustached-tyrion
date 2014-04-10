@@ -11,9 +11,9 @@ import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
-public class JobTracker {
+public class Worker {
 	
-	String myPath = "/jobTrack";
+	String myPath = "/worker";
     ZkConnector zkc;
     Watcher watcher;
     String myInfo = null;   
@@ -25,7 +25,7 @@ public class JobTracker {
         boolean listening = true;
 
         try {
-        	if(args.length == 2) {
+        	if(args.length == 3) {
         		mySocket = new ServerSocket(Integer.parseInt(args[0]));
         		zooInfo = args[1];
         	} else {
@@ -39,7 +39,7 @@ public class JobTracker {
         
         String myInfo = InetAddress.getLocalHost().getHostName() + ":" + args[0];
         
-        JobTracker t = new JobTracker(args[1], myInfo);   
+        Worker t = new Worker(args[1], myInfo);   
         
         t.checkpath();       
 
@@ -51,7 +51,7 @@ public class JobTracker {
     }
 	
 	
-	public JobTracker(String hosts, String myInfo) {
+	public Worker(String hosts, String myInfo) {
 		this.myInfo = myInfo;
         zkc = new ZkConnector();
         try {
