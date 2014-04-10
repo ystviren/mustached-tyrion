@@ -56,7 +56,7 @@ public class JobTrackerHandlerThread extends Thread {
 					for (i = 0; i < jobsList.size(); i++) {
 						if (jobsList.get(i).equals(packetFromClient.hash)) {
 							// turn the request into a querry
-							String path = "/"+jobsList.get(i);
+							String path = "/jobs/"+jobsList.get(i);
 							// check the state of the job:
 							JobTrackerPacket packetToClient = new JobTrackerPacket();
 							packetToClient.type = JobTrackerPacket.REPLY_QUERRY;
