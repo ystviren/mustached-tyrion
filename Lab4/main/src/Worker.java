@@ -63,26 +63,44 @@ public class Worker {
 			while (true) {
 				Stat tmp = t.zkc.exists("/jobs", null);
 				Stat tmp2 = new Stat();
-				if (tmp != null) {
+				if (tmp != null && t.FSSocket != null) {
 					ArrayList<String> list = new ArrayList<String>(t.zookeeper.getChildren("/jobs", false));
-					for (int i = 0; i < list.size(); i++){
-						//check if the job is done, if it is not do a part
-						//if all jobs are done, just loop around
-						
-						//TODO: grab some kind of lock???
-						String tmpString = new String (t.zookeeper.getData("/jobs/"+list.get(i), false, tmp2));
-						if (tmpString.equals("pending")){
+					for (int i = 0; i < list.size(); i++) {
+						// check if the job is done, if it is not do a part
+						// if all jobs are done, just loop around
+
+						// TODO: grab some kind of lock???
+						String tmpString = new String(t.zookeeper.getData("/jobs/" + list.get(i), false, tmp2));
+						if (tmpString.equals("pending")) {
 							System.out.println("Doing job " + list.get(i));
-							ArrayList<String> listJobs = new ArrayList<String>(t.zookeeper.getChildren("/jobs/"+list.get(i), false));
-							for (int j = 0; j < listJobs.size(); j++){
-								if (t.zookeeper.getData("/jobs/"+list.get(i)+"/"+listJobs.get(j), false, null) == null){
-									System.out.println("Looking at " + list.get(i) + " with parition " + listJobs.get(j));
-									t.hashMatch(list.get(i), listJobs.get(j), t);
+							ArrayList<String> listJobs = new ArrayList<String>(t.zookeeper.getChildren("/jobs/" + list.get(i), false));
+							for (int j = 0; j < listJobs.size(); j++) {
+								if (t.zookeeper.getData("/jobs/" + list.get(i) + "/" + listJobs.get(j), false, null) == null) {
+									Stat lockStat = t.zookeeper.exists("/jobs/" + list.get(i) + "/" + listJobs.get(j) + "/working", false);
+									if (lockStat == null) {
+
+										System.out.println("Creating lock");
+										Code ret = t.zkc.create("/jobs/" + list.get(i) + "/" + listJobs.get(j) + "/working", // Path
+																																// of
+																																// znode
+												null, // Data not needed.
+												CreateMode.EPHEMERAL // Znode
+																		// type,
+																		// set
+																		// to
+																		// EPHEMERAL.
+												);
+										if (ret == Code.OK) {
+											System.out.println("the lock!");
+											t.hashMatch(list.get(i), listJobs.get(j), t);
+										}
+									}
 
 								}
 							}
 						}
-						//send a packet to FileServer requesting dictionary section
+						// send a packet to FileServer requesting dictionary
+						// section
 						// for each word, compute the hash and string cmp.
 						// if match set job as found, else mark sub part as done
 					}
@@ -96,34 +114,37 @@ public class Worker {
 			e.printStackTrace();
 		}
 	}
-	
-	public void hashMatch(String hash, String partition, Worker worker){
+
+	public void hashMatch(String hash, String partition, Worker worker) {
 		FileServerPacket toFs = new FileServerPacket();
 		FileServerPacket fromFs = null;
-		
+
 		toFs.type = FileServerPacket.FILE_REQUEST;
 		toFs.partition = Integer.parseInt(partition);
-		
+
 		try {
 			worker.out.writeObject(toFs);
 			fromFs = (FileServerPacket) worker.in.readObject();
-			for (int i = 0; i < fromFs.words.size(); i++){
-				//get hash for each function
-				if(MD5Test.getHash(fromFs.words.get(i)).equals(hash)){
-					worker.zookeeper.setData("/jobs/"+hash+"/"+partition, "Found".getBytes(), -1);
-					worker.zookeeper.setData("/jobs/"+hash, "Found".getBytes(), -1);
+
+			for (int i = 0; i < fromFs.words.size(); i++) {
+				// get hash for each function
+				if (MD5Test.getHash(fromFs.words.get(i)).equals(hash)) {
+					worker.zookeeper.setData("/jobs/" + hash + "/" + partition, "Found".getBytes(), -1);
+					worker.zookeeper.setData("/jobs/" + hash, "Found".getBytes(), -1);
+					System.out.println("Done " + hash);
 					return;
 				}
 			}
-			worker.zookeeper.setData("/jobs/"+hash+"/"+partition, "NotFound".getBytes(), -1);
-			ArrayList<String> listJobs = new ArrayList<String>(worker.zookeeper.getChildren("/jobs/"+hash, false));
-			for (int j = 0; j < listJobs.size(); j++){
-				if (worker.zookeeper.getData("/jobs/"+hash+"/"+listJobs.get(j), false, null) == null){
+			worker.zookeeper.setData("/jobs/" + hash + "/" + partition, "NotFound".getBytes(), -1);
+			ArrayList<String> listJobs = new ArrayList<String>(worker.zookeeper.getChildren("/jobs/" + hash, false));
+			for (int j = 0; j < listJobs.size(); j++) {
+				if (worker.zookeeper.getData("/jobs/" + hash + "/" + listJobs.get(j), false, null) == null) {
 					return;
 				}
 			}
-			worker.zookeeper.setData("/jobs/"+hash, "NotFound".getBytes(), -1);
-		
+			System.out.println("Done " + hash);
+			worker.zookeeper.setData("/jobs/" + hash, "NotFound".getBytes(), -1);
+
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -137,11 +158,9 @@ public class Worker {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		
-		
+
 	}
-	
+
 	public Worker(String hosts, String id) {
 		zkc = new ZkConnector();
 		try {
@@ -189,14 +208,61 @@ public class Worker {
 					);
 			if (ret == Code.OK) {
 				System.out.println("Created" + myPath);
-			};
+			}
+			;
 
 		}
 	}
 
 	private void handleEvent(WatchedEvent event) {
 		// FS is dead need to switch connection and enable watcher.
+		String path = event.getPath();
+		EventType type = event.getType();
+		if (type == EventType.NodeDeleted) {
+			System.out.println("Closing connection");
+			try {
+				FSSocket.close();
+				out.close();
+				in.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			FSSocket = null;
+			zkc.exists("/fileSrv", FSwatcher);
+		} else if (type == EventType.NodeCreated) {
+			System.out.println("Opening connection");
+			String filServInfo = null;
+			Stat stat = zkc.exists("/fileSrv", FSwatcher);
+			if (stat == null) {
+				return;
+
+			}
+			try {
+				filServInfo = new String(zookeeper.getData("/fileSrv", false, stat));
+			} catch (KeeperException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				System.exit(-1);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				System.exit(-1);
+			}
+
+			String[] fileServerInfo = filServInfo.split(":");
+			String fsHost = fileServerInfo[0];
+			int fsPort = Integer.parseInt(fileServerInfo[1]);
+
+			try {
+				FSSocket = new Socket(fsHost, fsPort);
+				out = new ObjectOutputStream(FSSocket.getOutputStream());
+				in = new ObjectInputStream(FSSocket.getInputStream());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 
 	}
-
 }
