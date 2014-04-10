@@ -229,7 +229,35 @@ public class Worker {
 				e.printStackTrace();
 			}
 			FSSocket = null;
-			zkc.exists("/fileSrv", FSwatcher);
+			Stat stat = zkc.exists("/fileSrv", FSwatcher);
+			if (stat != null){
+				System.out.println("Opening connection");
+				String filServInfo = null;
+				try {
+					filServInfo = new String(zookeeper.getData("/fileSrv", false, stat));
+				} catch (KeeperException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					System.exit(-1);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					System.exit(-1);
+				}
+
+				String[] fileServerInfo = filServInfo.split(":");
+				String fsHost = fileServerInfo[0];
+				int fsPort = Integer.parseInt(fileServerInfo[1]);
+
+				try {
+					FSSocket = new Socket(fsHost, fsPort);
+					out = new ObjectOutputStream(FSSocket.getOutputStream());
+					in = new ObjectInputStream(FSSocket.getInputStream());
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
 		} else if (type == EventType.NodeCreated) {
 			System.out.println("Opening connection");
 			String filServInfo = null;
