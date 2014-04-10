@@ -33,7 +33,7 @@ public class ClientDriver {
 		// connect to zookeeper to 
 		ClientDriver client = new ClientDriver(zooInfo);
 		// get the jobserver
-		String[] jobServerInfo = checkpath().split(":");
+		String[] jobServerInfo = client.checkpath().split(":");
 		String jobHost = jobServerInfo[0];
 		int jobPort = Integer.parseInt(jobServerInfo[1]);
 		
@@ -58,9 +58,11 @@ public class ClientDriver {
 			JobTrackerPacket packetFromServer;
 			packetFromServer = (JobTrackerPacket) in.readObject();
 
-			if (packetFromServer.type == JobTrackerPacket.BROKER_QUOTE)
-				System.out.println("Quote from broker: " + packetFromServer.quote);
-
+			if (packetFromServer.type == JobTrackerPacket.REPLY_REQUEST) {
+				System.out.println("replied to request");
+			} else if (packetFromServer.type == JobTrackerPacket.REPLY_QUERRY) {
+				System.out.println("replied to querry");
+			}
 			/* re-print console prompt */
 			System.out.print(">");
 		}
@@ -97,7 +99,7 @@ public class ClientDriver {
                             
     }
     
-    private static String checkpath() {
+    private String checkpath() {
     	String jobServerInfo = null;
     	// first check that the jobtrack node exists
         Stat stat = zkc.exists("/jobTrack", watcher);
