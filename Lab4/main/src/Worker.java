@@ -103,12 +103,10 @@ public class Worker {
 		
 		toFs.type = FileServerPacket.FILE_REQUEST;
 		toFs.partition = partition;
-		System.out.println("Doing hashMatch " + hash);
 		
 		try {
 			worker.out.writeObject(toFs);
 			fromFs = (FileServerPacket) worker.in.readObject();
-			System.out.println("Doing welp " + hash);
 			for (int i = 0; i < fromFs.words.size(); i++){
 				//get hash for each function
 				if(MD5Test.getHash(fromFs.words.get(i)).equals(hash)){
@@ -117,14 +115,15 @@ public class Worker {
 					return;
 				}
 			}
-			worker.zookeeper.setData("/jobs/"+hash+"/"+partition, "Not Found".getBytes(), -1);
+			
+			worker.zookeeper.setData("/jobs/"+hash+"/"+partition, "NotFound".getBytes(), -1);
 			ArrayList<String> listJobs = new ArrayList<String>(zookeeper.getChildren("/jobs/"+hash, false));
 			for (int j = 0; j < listJobs.size(); j++){
 				if (zookeeper.getData("/jobs/"+hash+"/"+listJobs.get(j), false, null) == null){
 					return;
 				}
 			}
-			worker.zookeeper.setData("/jobs/"+hash, "Not Found".getBytes(), -1);
+			worker.zookeeper.setData("/jobs/"+hash, "NotFound".getBytes(), -1);
 		
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
