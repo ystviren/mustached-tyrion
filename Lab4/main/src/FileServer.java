@@ -29,7 +29,7 @@ public class FileServer {
         boolean listening = true;
 
         try {
-        	if(args.length == 3) {
+        	if(args.length == 2) {
         		mySocket = new ServerSocket(Integer.parseInt(args[0]));
         		zooInfo = args[1];
         	} else {
