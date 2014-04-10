@@ -13,54 +13,42 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 
 public class Worker {
 	
-	String myPath = "/worker";
+	String myParent = "/worker";
+	String myPath = null;
     ZkConnector zkc;
+    ZooKeeper zookeeper;
     Watcher watcher;
     Watcher watchParent = null;
-    String myInfo = null;   
 	
 	public static void main(String[] args) throws IOException {
-        ServerSocket mySocket = null;
         String zooInfo = null;
         
-        boolean listening = true;
 
-        try {
-        	if(args.length == 3) {
-        		mySocket = new ServerSocket(Integer.parseInt(args[0]));
-        		zooInfo = args[1];
-        	} else {
-        		System.err.println("ERROR: Invalid arguments!");
-        		System.exit(-1);
-        	}
-        } catch (IOException e) {
-            System.err.println("ERROR: Could not listen on port!");
-            System.exit(-1);
-        }
+        zooInfo = args[0];
         
-        String myInfo = InetAddress.getLocalHost().getHostName() + ":" + args[0];
-        
-        Worker t = new Worker(args[1], myInfo);   
+        //Connect to zookeeper
+        Worker t = new Worker(args[0], args[1]);   
         
         t.checkparent();
         t.checkpath(args[2]);       
 
-        while (listening) {
-        	new JobTrackerHandlerThread(mySocket.accept()).start();
-        }
-
-        mySocket.close();
     }
 	
 	
-	public Worker(String hosts, String myInfo) {
-		this.myInfo = myInfo;
+	public Worker(String hosts, String id) {
         zkc = new ZkConnector();
         try {
             zkc.connect(hosts);
         } catch(Exception e) {
             System.out.println("Zookeeper connect "+ e.getMessage());
         }
+        myPath = myParent +"/"+id;
+        watchParent = new Watcher() { // Anonymous Watcher
+            @Override
+            public void process(WatchedEvent event) {
+                handleEvent(event);
+        
+            } };
  
         watcher = new Watcher() { // Anonymous Watcher
                             @Override
@@ -68,14 +56,15 @@ public class Worker {
                                 handleEvent(event);
                         
                             } };
+       zookeeper = zkc.getZooKeeper();
     }
 	private void checkparent() {
-        Stat stat = zkc.exists(myPath, watchParent);
+        Stat stat = zkc.exists(myParent, watchParent);
         if (stat == null) {              // znode doesn't exist; let's try creating it        	
         	
-            System.out.println("Creating " + myPath);
+            System.out.println("Creating " + myParent);
             Code ret = zkc.create(
-                        myPath,         // Path of znode
+                        myParent,         // Path of znode
                         null,           // Data not needed.
                         CreateMode.EPHEMERAL   // Znode type, set to EPHEMERAL.
                         );
@@ -84,13 +73,13 @@ public class Worker {
         } 
     }
     private void checkpath(String id) {
-        Stat stat = zkc.exists(myPath +"/"+id, watcher);
+        Stat stat = zkc.exists(myPath, watcher);
         if (stat == null) {              // znode doesn't exist; let's try creating it        	
         	
             System.out.println("Creating " + myPath);
             Code ret = zkc.create(
-            			myPath +"/"+id,         // Path of znode
-                        myInfo,           // Data not needed.
+            			myPath,         // Path of znode
+                        null,           // Data not needed.
                         CreateMode.EPHEMERAL   // Znode type, set to EPHEMERAL.
                         );
             if (ret == Code.OK){};
