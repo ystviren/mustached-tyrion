@@ -6,11 +6,13 @@ import java.io.*;
 public class FileServerHandlerThread extends Thread {
 
 	Socket mySocket = null;
+	 ArrayList<ArrayList<String>> wordList = null;
 	
-	public FileServerHandlerThread(Socket socket) {
+	public FileServerHandlerThread(Socket socket,  ArrayList<ArrayList<String>> wordList) {
 		super("FileServerHandlerThread");
 		this.mySocket = socket;
 		System.out.println("Created new Thread to handle client");
+		this.wordList = new ArrayList<ArrayList<String>>(wordList);
 	}
 
 	// Handle connections from client drivers

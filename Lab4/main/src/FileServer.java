@@ -1,5 +1,7 @@
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
+import java.util.Dictionary;
 
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -17,6 +19,8 @@ public class FileServer {
     ZkConnector zkc;
     Watcher watcher;
     String myInfo = null;   
+    static final String fp = "lowercase.rand";
+    static ArrayList<ArrayList<String>> wordList = new ArrayList<ArrayList<String>>();
 	
 	public static void main(String[] args) throws IOException {
         ServerSocket mySocket = null;
@@ -43,8 +47,24 @@ public class FileServer {
         
         t.checkpath();       
 
+        File file = new File(fp);
+        BufferedReader br = new BufferedReader(new FileReader(file));
+        String line;
+        ArrayList<String> tmp = new ArrayList<String>();
+        int count = 0;
+        int limit = 16608;
+        while ((line = br.readLine()) != null) {
+           tmp.add(line);
+           count++;
+           if (count == limit){
+        	   count = 0;
+        	   wordList.add(tmp);
+           }
+        }
+        br.close();
+        
         while (listening) {
-        	new FileServerHandlerThread(mySocket.accept()).start();
+        	new FileServerHandlerThread(mySocket.accept(), wordList).start();
         }
 
         mySocket.close();
