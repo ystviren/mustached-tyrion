@@ -31,7 +31,9 @@ public class FileServerHandlerThread extends Thread {
 			while (( packetFromClient = (FileServerPacket) fromClient.readObject()) != null) {
 				
 				if (packetFromClient.type == FileServerPacket.FILE_REQUEST) {
-					// handle submission of a new job
+					FileServerPacket packetToClient = new FileServerPacket();
+					packetToClient.type = FileServerPacket.REPLY_REQUEST;
+					packetToClient.words = new ArrayList<String>(wordList.get(packetFromClient.partition));
 				}
 			}
 		} catch (IOException e) {

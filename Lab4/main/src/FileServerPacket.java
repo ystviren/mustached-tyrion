@@ -1,5 +1,8 @@
+import java.io.Serializable;
+import java.util.ArrayList;
 
-public class FileServerPacket {
+
+public class FileServerPacket implements Serializable{
 	/* define constants */
 	public static final int PACKET_NULL    = 0;
 	public static final int FILE_REQUEST = 101;
@@ -13,6 +16,10 @@ public class FileServerPacket {
 	
 	/* message header */
 	public int type = FileServerPacket.PACKET_NULL;
+	
+	public int partition;
+	
+	public ArrayList<String> words = null;
 	
 	public int error_code;
 	
