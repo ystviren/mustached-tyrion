@@ -36,6 +36,7 @@ public class JobTrackerHandlerThread extends Thread {
 			ObjectOutputStream toClient = new ObjectOutputStream(mySocket.getOutputStream());
 			
 			while (( packetFromClient = (JobTrackerPacket) fromClient.readObject()) != null) {
+				System.out.println("incoming packet:" + packetFromClient.hash);
 				boolean isQuerry = false;
 				if (packetFromClient.type == JobTrackerPacket.JOB_REQUEST) {
 					// do a lookup on zoo keeper.
