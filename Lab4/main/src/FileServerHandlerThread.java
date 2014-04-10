@@ -35,13 +35,10 @@ public class FileServerHandlerThread extends Thread {
 					packetToClient.type = FileServerPacket.REPLY_REQUEST;
 					packetToClient.words = new ArrayList<String>(wordList.get(packetFromClient.partition));
 					toClient.writeObject(packetToClient);
-					break;
 				}
 			}
 			
-			fromClient.close();
-			toClient.close();
-			mySocket.close();
+
 			
 		} catch (IOException e) {
 			if(!gotByePacket)

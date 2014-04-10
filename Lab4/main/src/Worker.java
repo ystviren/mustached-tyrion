@@ -55,7 +55,9 @@ public class Worker {
 		String[] fileServerInfo = filServInfo.split(":");
 		String fsHost = fileServerInfo[0];
 		int fsPort = Integer.parseInt(fileServerInfo[1]);
-
+		t.FSSocket = new Socket(fsHost, fsPort);
+		t.out = new ObjectOutputStream(t.FSSocket.getOutputStream());
+		t.in = new ObjectInputStream(t.FSSocket.getInputStream());
 		try {
 			System.out.println("Starting jobs");
 			while (true) {
@@ -74,13 +76,9 @@ public class Worker {
 							ArrayList<String> listJobs = new ArrayList<String>(t.zookeeper.getChildren("/jobs/"+list.get(i), false));
 							for (int j = 0; j < listJobs.size(); j++){
 								if (t.zookeeper.getData("/jobs/"+list.get(i)+"/"+listJobs.get(j), false, null) == null){
-									t.FSSocket = new Socket(fsHost, fsPort);
-									t.out = new ObjectOutputStream(t.FSSocket.getOutputStream());
-									t.in = new ObjectInputStream(t.FSSocket.getInputStream());
+									
 									t.hashMatch(list.get(i), j, t);
-									t.out.close();
-									t.in.close();
-									t.FSSocket.close();
+
 								}
 							}
 						}
