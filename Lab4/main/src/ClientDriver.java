@@ -140,7 +140,7 @@ public class ClientDriver {
         EventType type = event.getType();
         if(path.equalsIgnoreCase("/jobTrack")) {
             if (type == EventType.NodeDeleted) {
-            	
+            	System.out.println("/jobTrack" + " deleted!");
             	// close the connections
             	try {
 					out.close();
@@ -158,7 +158,7 @@ public class ClientDriver {
             	
             }
             if (type == EventType.NodeCreated) {
-            	
+            	System.out.println("/jobTrack" + " created!");
             	// connect to the new jobtrack node
             	// get the jobserver
         		String[] jobServerInfo = checkpath().split(":");
@@ -171,6 +171,9 @@ public class ClientDriver {
 	        		out = new ObjectOutputStream(JobServer.getOutputStream());
 	        		in = new ObjectInputStream(JobServer.getInputStream());
 	        		active = true;
+	        		
+	        		// reset the watch
+	        		zkc.exists("/jobTrack", watcher);
 	        		
 	        		// resend the last packet? 
 	        		
