@@ -30,8 +30,11 @@ public class Worker {
         Worker t = new Worker(args[0], args[1]);   
         
         t.checkparent();
-        t.checkpath(args[2]);       
-
+        t.checkpath();       
+        
+        while(true){
+        	//While there is work do work else spin
+        }
     }
 	
 	
@@ -72,7 +75,7 @@ public class Worker {
 
         } 
     }
-    private void checkpath(String id) {
+    private void checkpath() {
         Stat stat = zkc.exists(myPath, watcher);
         if (stat == null) {              // znode doesn't exist; let's try creating it        	
         	
