@@ -130,7 +130,7 @@ public class Worker {
 				// get hash for each function
 				if (MD5Test.getHash(fromFs.words.get(i)).equals(hash)) {
 					worker.zookeeper.setData("/jobs/" + hash + "/" + partition, "Found".getBytes(), -1);
-					worker.zookeeper.setData("/jobs/" + hash, "Found".getBytes(), -1);
+					worker.zookeeper.setData("/jobs/" + hash, fromFs.words.get(i).getBytes(), -1);
 					System.out.println("Done " + hash);
 					return;
 				}
