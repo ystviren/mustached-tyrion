@@ -41,8 +41,7 @@ public class Worker {
 															// server is alive
 		}
 		try {
-			filServInfo = t.zookeeper.getData("/fileSrv", false, stat)
-					.toString();
+			filServInfo = new String(t.zookeeper.getData("/fileSrv", false, stat));
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -72,7 +71,8 @@ public class Worker {
 						//if all jobs are done, just loop around
 						
 						//TODO: grab some kind of lock???
-						if (t.zookeeper.getData("/jobs/"+list.get(i), false, tmp2) == null){
+						String tmpString = new String (t.zookeeper.getData("/jobs/"+list.get(i), false, tmp2));
+						if (tmpString.equals("pending")){
 							ArrayList<String> listJobs = new ArrayList<String>(t.zookeeper.getChildren("/jobs/"+list.get(i), false));
 							for (int j = 0; j < listJobs.size(); j++){
 								if (t.zookeeper.getData("/jobs/"+list.get(i)+"/"+listJobs.get(j), false, null) == null){
@@ -110,10 +110,18 @@ public class Worker {
 				//get hash for each function
 				if(MD5Test.getHash(fromFs.words.get(i)).equals(hash)){
 					worker.zookeeper.setData("/jobs/"+hash+"/"+partition, "Found".getBytes(), -1);
+					worker.zookeeper.setData("/jobs/"+hash, "Found".getBytes(), -1);
 					return;
 				}
 			}
 			worker.zookeeper.setData("/jobs/"+hash+"/"+partition, "Not Found".getBytes(), -1);
+			ArrayList<String> listJobs = new ArrayList<String>(zookeeper.getChildren("/jobs/"+hash, false));
+			for (int j = 0; j < listJobs.size(); j++){
+				if (zookeeper.getData("/jobs/"+hash+"/"+listJobs.get(j), false, null) == null){
+					return;
+				}
+			}
+			worker.zookeeper.setData("/jobs/"+hash, "Not Found".getBytes(), -1);
 		
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -159,9 +167,10 @@ public class Worker {
 			System.out.println("Creating " + myParent);
 			Code ret = zkc.create(myParent, // Path of znode
 					null, // Data not needed.
-					CreateMode.EPHEMERAL // Znode type, set to EPHEMERAL.
+					CreateMode.PERSISTENT // Znode type, set to EPHEMERAL.
 					);
 			if (ret == Code.OK) {
+				System.out.println("Created " + myParent);
 			}
 			;
 
@@ -178,8 +187,8 @@ public class Worker {
 					CreateMode.EPHEMERAL // Znode type, set to EPHEMERAL.
 					);
 			if (ret == Code.OK) {
-			}
-			;
+				System.out.println("Created" + myPath);
+			};
 
 		}
 	}
