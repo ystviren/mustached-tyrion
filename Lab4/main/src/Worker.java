@@ -16,6 +16,7 @@ public class Worker {
 	String myPath = "/worker";
     ZkConnector zkc;
     Watcher watcher;
+    Watcher watchParent = null;
     String myInfo = null;   
 	
 	public static void main(String[] args) throws IOException {
@@ -41,7 +42,8 @@ public class Worker {
         
         Worker t = new Worker(args[1], myInfo);   
         
-        t.checkpath();       
+        t.checkparent();
+        t.checkpath(args[2]);       
 
         while (listening) {
         	new JobTrackerHandlerThread(mySocket.accept()).start();
@@ -67,18 +69,32 @@ public class Worker {
                         
                             } };
     }
-    
-    private void checkpath() {
-        Stat stat = zkc.exists(myPath, watcher);
+	private void checkparent() {
+        Stat stat = zkc.exists(myPath, watchParent);
         if (stat == null) {              // znode doesn't exist; let's try creating it        	
         	
             System.out.println("Creating " + myPath);
             Code ret = zkc.create(
                         myPath,         // Path of znode
+                        null,           // Data not needed.
+                        CreateMode.EPHEMERAL   // Znode type, set to EPHEMERAL.
+                        );
+            if (ret == Code.OK){};
+
+        } 
+    }
+    private void checkpath(String id) {
+        Stat stat = zkc.exists(myPath +"/"+id, watcher);
+        if (stat == null) {              // znode doesn't exist; let's try creating it        	
+        	
+            System.out.println("Creating " + myPath);
+            Code ret = zkc.create(
+            			myPath +"/"+id,         // Path of znode
                         myInfo,           // Data not needed.
                         CreateMode.EPHEMERAL   // Znode type, set to EPHEMERAL.
                         );
-            if (ret == Code.OK) System.out.println("the boss!");
+            if (ret == Code.OK){};
+
         } 
     }
 
@@ -88,12 +104,12 @@ public class Worker {
         if(path.equalsIgnoreCase(myPath)) {
             if (type == EventType.NodeDeleted) {
                 System.out.println(myPath + " deleted! Let's go!");       
-                checkpath(); // try to become the boss
+                //checkpath(); // try to become the boss
             }
             if (type == EventType.NodeCreated) {
                 System.out.println(myPath + " created!");       
                 try{ Thread.sleep(5000); } catch (Exception e) {}
-                checkpath(); // re-enable the watch
+                //checkpath(); // re-enable the watch
             }
         }
     }
