@@ -153,6 +153,9 @@ public class ClientDriver {
         		
             	active = false;
             	
+            	// reset watch
+            	zkc.exists("/jobTrack", watcher);
+            	
             }
             if (type == EventType.NodeCreated) {
             	
