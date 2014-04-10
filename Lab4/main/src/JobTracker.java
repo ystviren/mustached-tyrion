@@ -17,6 +17,7 @@ public class JobTracker {
     ZkConnector zkc;
     Watcher watcher;
     String myInfo = null;   
+    ZooKeeper theZoo = null;
 	
 	public static void main(String[] args) throws IOException {
         ServerSocket mySocket = null;
@@ -44,7 +45,7 @@ public class JobTracker {
         t.checkpath();       
 
         while (listening) {
-        	new JobTrackerHandlerThread(mySocket.accept()).start();
+        	new JobTrackerHandlerThread(mySocket.accept(), t.theZoo, t.zkc).start();
         }
 
         mySocket.close();
@@ -60,6 +61,8 @@ public class JobTracker {
             System.out.println("Zookeeper connect "+ e.getMessage());
         }
  
+        theZoo = zkc.getZooKeeper();
+        
         watcher = new Watcher() { // Anonymous Watcher
                             @Override
                             public void process(WatchedEvent event) {
