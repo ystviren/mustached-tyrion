@@ -77,7 +77,7 @@ public class Worker {
 							for (int j = 0; j < listJobs.size(); j++){
 								if (t.zookeeper.getData("/jobs/"+list.get(i)+"/"+listJobs.get(j), false, null) == null){
 									System.out.println("Looking at " + list.get(i) + " with parition " + listJobs.get(j));
-									t.hashMatch(list.get(i), j, t);
+									t.hashMatch(list.get(i), listJobs.get(j), t);
 
 								}
 							}
@@ -97,12 +97,12 @@ public class Worker {
 		}
 	}
 	
-	public void hashMatch(String hash, int partition, Worker worker){
+	public void hashMatch(String hash, String partition, Worker worker){
 		FileServerPacket toFs = new FileServerPacket();
 		FileServerPacket fromFs = null;
 		
 		toFs.type = FileServerPacket.FILE_REQUEST;
-		toFs.partition = partition;
+		toFs.partition = Integer.parseInt(partition);
 		
 		try {
 			worker.out.writeObject(toFs);
