@@ -52,7 +52,7 @@ public class FileServer {
         String line;
         ArrayList<String> tmp = new ArrayList<String>();
         int count = 0;
-        int limit = 16608;
+        int limit = 33217;
         while ((line = br.readLine()) != null) {
            tmp.add(line);
            count++;

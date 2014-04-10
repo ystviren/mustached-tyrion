@@ -76,7 +76,7 @@ public class Worker {
 							ArrayList<String> listJobs = new ArrayList<String>(t.zookeeper.getChildren("/jobs/"+list.get(i), false));
 							for (int j = 0; j < listJobs.size(); j++){
 								if (t.zookeeper.getData("/jobs/"+list.get(i)+"/"+listJobs.get(j), false, null) == null){
-									System.out.println("Looking at " + list.get(i) + "with parition " + j);
+									System.out.println("Looking at " + list.get(i) + " with parition " + listJobs.get(j));
 									t.hashMatch(list.get(i), j, t);
 
 								}
@@ -115,11 +115,10 @@ public class Worker {
 					return;
 				}
 			}
-			
 			worker.zookeeper.setData("/jobs/"+hash+"/"+partition, "NotFound".getBytes(), -1);
-			ArrayList<String> listJobs = new ArrayList<String>(zookeeper.getChildren("/jobs/"+hash, false));
+			ArrayList<String> listJobs = new ArrayList<String>(worker.zookeeper.getChildren("/jobs/"+hash, false));
 			for (int j = 0; j < listJobs.size(); j++){
-				if (zookeeper.getData("/jobs/"+hash+"/"+listJobs.get(j), false, null) == null){
+				if (worker.zookeeper.getData("/jobs/"+hash+"/"+listJobs.get(j), false, null) == null){
 					return;
 				}
 			}
