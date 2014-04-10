@@ -54,14 +54,16 @@ public class JobTrackerHandlerThread extends Thread {
 					// check if the job request already exists:
 					int i;
 					for (i = 0; i < jobsList.size(); i++) {
-						if (jobsList.get(i).contains(packetFromClient.hash)) {
+						if (jobsList.get(i).equals(packetFromClient.hash)) {
 							// turn the request into a querry
 							String path = "/"+jobsList.get(i);
 							// check the state of the job:
 							JobTrackerPacket packetToClient = new JobTrackerPacket();
 							packetToClient.type = JobTrackerPacket.REPLY_QUERRY;
 							try {
-								packetToClient.status = new String(theZoo.getData(path, null, theZoo.exists(path, null)));
+								byte[] nodeData = theZoo.getData(path, null, theZoo.exists(path, null));
+								
+								packetToClient.status = nodeData.toString();
 							} catch (KeeperException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
