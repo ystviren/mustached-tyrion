@@ -36,6 +36,7 @@ public class JobTrackerHandlerThread extends Thread {
 			ObjectOutputStream toClient = new ObjectOutputStream(mySocket.getOutputStream());
 			
 			while (( packetFromClient = (JobTrackerPacket) fromClient.readObject()) != null) {
+				System.out.println("incoming packet:" + packetFromClient.hash);
 				boolean isQuerry = false;
 				if (packetFromClient.type == JobTrackerPacket.JOB_REQUEST) {
 					// do a lookup on zoo keeper.
@@ -55,7 +56,7 @@ public class JobTrackerHandlerThread extends Thread {
 					for (i = 0; i < jobsList.size(); i++) {
 						if (jobsList.get(i).contains(packetFromClient.hash)) {
 							// turn the request into a querry
-							String path = jobsList.get(i);
+							String path = "/"+jobsList.get(i);
 							// check the state of the job:
 							JobTrackerPacket packetToClient = new JobTrackerPacket();
 							packetToClient.type = JobTrackerPacket.REPLY_QUERRY;
@@ -80,7 +81,7 @@ public class JobTrackerHandlerThread extends Thread {
 					
 					// if we get here its because this request is new \o/
 					// create the node and its children
-					Code ret = zkc.create( ("/jobs/"+packetFromClient.hash), null, CreateMode.PERSISTENT);
+					Code ret = zkc.create( ("/jobs/"+packetFromClient.hash), "pending", CreateMode.PERSISTENT);
 					if (ret == Code.OK) {
 						System.out.println("created new job request");
 						for (i = 0; i < 16; i++) {

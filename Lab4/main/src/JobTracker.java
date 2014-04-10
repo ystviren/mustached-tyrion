@@ -17,6 +17,7 @@ public class JobTracker {
 	String myPath = "/jobTrack";
     ZkConnector zkc;
     Watcher watcher;
+    Watcher watcher_jobs;
     String myInfo = null;   
     ZooKeeper theZoo = null;
     boolean listening = false;
@@ -78,8 +79,21 @@ public class JobTracker {
                                 handleEvent(event);
                         
                             } };
+
+        watcher_jobs = new Watcher() { // Anonymous Watcher
+                            @Override
+                            public void process(WatchedEvent event) {
+                                handleEvent_jobs(event);
+                        
+                            } };
     }
     
+	protected void handleEvent_jobs(WatchedEvent event) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
 	// try to create znode and become primary. if we fail, become secondary
     private boolean checkpath() {
     	boolean result = false;
@@ -98,6 +112,24 @@ public class JobTracker {
             	result = true;
             }
         } 
+        
+        // create the job nodes
+        stat = zkc.exists("/jobs", watcher_jobs);
+        if (stat == null) {              // znode doesn't exist; let's try creating it        	
+   
+            System.out.println("Creating " + "/jobs");
+            Code ret = zkc.create(
+            		"/jobs",         // Path of znode
+                        null,           // Data not needed.
+                        CreateMode.PERSISTENT   // Znode type, set to EPHEMERAL.
+                        );
+            if (ret == Code.OK) {
+            	System.out.println("created jobs root");
+            	result = true;
+            }
+        } 
+        
+        
         return result;
     }
 
