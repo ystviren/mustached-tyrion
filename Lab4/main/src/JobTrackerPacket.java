@@ -1,5 +1,7 @@
+import java.io.Serializable;
+
 // Defines communication between client driver and job tracker
-public class JobTrackerPacket {
+public class JobTrackerPacket implements Serializable {
 	/* define constants */
 	public static final int PACKET_NULL    = 0;
 	public static final int JOB_REQUEST = 101;
