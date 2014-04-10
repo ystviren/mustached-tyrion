@@ -36,7 +36,7 @@ public class JobTrackerHandlerThread extends Thread {
 			ObjectOutputStream toClient = new ObjectOutputStream(mySocket.getOutputStream());
 			
 			while (( packetFromClient = (JobTrackerPacket) fromClient.readObject()) != null) {
-				
+				boolean isQuerry = false;
 				if (packetFromClient.type == JobTrackerPacket.JOB_REQUEST) {
 					// do a lookup on zoo keeper.
 					List<String> jobsList = null;
@@ -69,23 +69,23 @@ public class JobTrackerHandlerThread extends Thread {
 								e.printStackTrace();
 							}
 							toClient.writeObject(packetToClient);
-							
-							continue;
+							isQuerry = true;
+							break;
 						}						
+					}
+					
+					if (isQuerry) {
+						continue;
 					}
 					
 					// if we get here its because this request is new \o/
 					// create the node and its children
-					Code ret = zkc.create(
-	                        ("/jobs/"+packetFromClient.hash),         // Path of znode
-	                        null,           // Data not needed.
-	                        CreateMode.EPHEMERAL   // Znode type, set to EPHEMERAL.
-	                        );
+					Code ret = zkc.create( ("/jobs/"+packetFromClient.hash), null, CreateMode.PERSISTENT);
 					if (ret == Code.OK) {
 						System.out.println("created new job request");
 						for (i = 0; i < 16; i++) {
 							// create children
-							ret = zkc.create( ("/jobs/"+packetFromClient.hash+"/"+String.valueOf(i)), null, CreateMode.EPHEMERAL);
+							ret = zkc.create( ("/jobs/" + packetFromClient.hash + "/" + String.valueOf(i)), null, CreateMode.PERSISTENT);
 						}
 					}
 					

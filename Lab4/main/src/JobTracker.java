@@ -109,6 +109,12 @@ public class JobTracker {
                 System.out.println(myPath + " deleted! Let's go!");       
                 if (checkpath()) { // try to become the boss
                 	// now we need to go through all the nodes under /jobs to check for consistency
+                	if (zkc.exists("/jobs", null) == null) {
+                		// no jobs have been submitted, so theres really nothing to recover from
+                		return;
+                	}
+                	
+                	
                 	List<String> jobsList = null;
 					try {
 						jobsList = theZoo.getChildren("/jobs", null);
@@ -120,7 +126,7 @@ public class JobTracker {
 						e.printStackTrace();
 					}
 					
-					// check if the job request already exists:
+					// check if the state of job tree:
 					int i;
 					for (i = 0; i < jobsList.size(); i++) {
 						// for each child, check that it has 16 children
@@ -134,10 +140,10 @@ public class JobTracker {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
-						if (temp.size() < 16) {
+						if (temp.size() < 16) { // need to fill in remaining children
 							int j;
 							for (j = temp.size(); j < 16; j++) {
-								zkc.create( ("/jobs/"+jobsList.get(i)+"/"+String.valueOf(j)), null, CreateMode.EPHEMERAL);
+								zkc.create( ("/jobs/"+jobsList.get(i)+"/"+String.valueOf(j)), null, CreateMode.PERSISTENT);
 							}
 						}
 					}
